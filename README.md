@@ -165,6 +165,19 @@ HotelSync/
    ```
 5. Copia ese link (`https://github.com/TU_USUARIO/HotelSync`) y envíalo al profesor.
 
+### Alternativa: subir a GitLab
+
+Si prefieres GitLab (más permisivo con repos privados), el proceso es igual:
+
+1. Crea el proyecto en https://gitlab.com.
+2. Usa el link que te da GitLab, por ejemplo `https://gitlab.com/TU_USUARIO/hotelsync.git`.
+3. En PowerShell:
+   ```bash
+   git remote add origin https://gitlab.com/TU_USUARIO/hotelsync.git
+   git branch -M main
+   git push -u origin main
+   ```
+
 ### Si no tienes git configurado localmente
 
 Abre PowerShell en la carpeta `HotelSync` y ejecuta:
@@ -177,6 +190,8 @@ git branch -M main
 git remote add origin https://github.com/TU_USUARIO/HotelSync.git
 git push -u origin main
 ```
+
+> Si usas GitLab, cambia la URL de GitHub por la de GitLab.
 
 ## Cómo desplegar (opcional)
 
