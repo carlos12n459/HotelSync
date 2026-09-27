@@ -1,0 +1,256 @@
+version: "3.8"
+
+# Infraestructura completa de HotelSync.
+# Con Docker Desktop instalado, ejecuta:
+#   docker compose up --build
+# y tendrás todos los microservicios + MySQL funcionando.
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: hotelsync-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: hotelsync_root
+    ports:
+      - "3306:3306"
+    volumes:
+      - hotelsync_mysql_data:/var/lib/mysql
+      - ./infraestructura/mysql-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-photelsync_root"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  servicio-disponibilidad-tarifas:
+    build: ./servicio-disponibilidad-tarifas
+    container_name: hotelsync-disponibilidad-tarifas
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: hotelsync_app
+      DB_PASSWORD: hotelsync_app_pass
+      DB_NAME: disponibilidad_tarifas_db
+      URL_SERVICIO_RESERVAS: http://servicio-reservas:3002
+      INTERVALO_POLLING_MS: 4000
+      URL_SERVICIO_PROPIEDADES: http://servicio-propiedades:3005
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  servicio-reservas:
+    build: ./servicio-reservas
+    container_name: hotelsync-reservas
+    restart: unless-stopped
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: hotelsync_app
+      DB_PASSWORD: hotelsync_app_pass
+      DB_NAME: reservas_db
+      URL_SERVICIO_DISPONIBILIDAD: http://servicio-disponibilidad-tarifas:3001
+      URL_SERVICIO_PROPIEDADES: http://servicio-propiedades:3005
+      URL_SERVICIO_HUESPEDES: http://servicio-reservas:3002
+    depends_on:
+      mysql:
+        condition: service_healthy
+      servicio-disponibilidad-tarifas:
+        condition: service_started
+
+  servicio-recepcion:
+    build: ./servicio-recepcion
+    container_name: hotelsync-recepcion
+    restart: unless-stopped
+    ports:
+      - "3003:3003"
+    environment:
+      PORT: 3003
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: hotelsync_app
+      DB_PASSWORD: hotelsync_app_pass
+      DB_NAME: recepcion_db
+      URL_SERVICIO_RESERVAS: http://servicio-reservas:3002
+      URL_SERVICIO_HOUSEKEEPING: http://servicio-housekeeping:3004
+      URL_SERVICIO_FACTURACION: http://servicio-facturacion:3007
+      INTERVALO_POLLING_MS: 4000
+    depends_on:
+      mysql:
+        condition: service_healthy
+      servicio-reservas:
+        condition: service_started
+      servicio-housekeeping:
+        condition: service_started
+
+  servicio-housekeeping:
+    build: ./servicio-housekeeping
+    container_name: hotelsync-housekeeping
+    restart: unless-stopped
+    ports:
+      - "3004:3004"
+    environment:
+      PORT: 3004
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: hotelsync_app
+      DB_PASSWORD: hotelsync_app_pass
+      DB_NAME: housekeeping_db
+      URL_SERVICIO_RECEPCION: http://servicio-recepcion:3003
+      INTERVALO_POLLING_MS: 4000
+    depends_on:
+      mysql:
+        condition: service_healthy
+      servicio-recepcion:
+        condition: service_started
+
+  servicio-propiedades:
+    build: ./servicio-propiedades
+    container_name: hotelsync-propiedades
+    restart: unless-stopped
+    ports:
+      - "3005:3005"
+    environment:
+      PORT: 3005
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: hotelsync_app
+      DB_PASSWORD: hotelsync_app_pass
+      DB_NAME: propiedades_db
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  servicio-channel-manager:
+    build: ./servicio-channel-manager
+    container_name: hotelsync-channel-manager
+    restart: unless-stopped
+    ports:
+      - "3006:3006"
+    environment:
+      PORT: 3006
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: hotelsync_app
+      DB_PASSWORD: hotelsync_app_pass
+      DB_NAME: channel_manager_db
+      URL_SERVICIO_RESERVAS: http://servicio-reservas:3002
+      URL_SERVICIO_DISPONIBILIDAD: http://servicio-disponibilidad-tarifas:3001
+      URL_SERVICIO_PROPIEDADES: http://servicio-propiedades:3005
+      INTERVALO_POLLING_MS: 4000
+    depends_on:
+      mysql:
+        condition: service_healthy
+      servicio-reservas:
+        condition: service_started
+      servicio-disponibilidad-tarifas:
+        condition: service_started
+
+  servicio-facturacion:
+    build: ./servicio-facturacion
+    container_name: hotelsync-facturacion
+    restart: unless-stopped
+    ports:
+      - "3007:3007"
+    environment:
+      PORT: 3007
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: hotelsync_app
+      DB_PASSWORD: hotelsync_app_pass
+      DB_NAME: facturacion_db
+      URL_SERVICIO_RESERVAS: http://servicio-reservas:3002
+      URL_SERVICIO_RECEPCION: http://servicio-recepcion:3003
+      INTERVALO_POLLING_MS: 4000
+    depends_on:
+      mysql:
+        condition: service_healthy
+      servicio-reservas:
+        condition: service_started
+      servicio-recepcion:
+        condition: service_started
+
+  servicio-fidelizacion:
+    build: ./servicio-fidelizacion
+    container_name: hotelsync-fidelizacion
+    restart: unless-stopped
+    ports:
+      - "3008:3008"
+    environment:
+      PORT: 3008
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: hotelsync_app
+      DB_PASSWORD: hotelsync_app_pass
+      DB_NAME: fidelizacion_db
+      URL_SERVICIO_RECEPCION: http://servicio-recepcion:3003
+      INTERVALO_POLLING_MS: 4000
+    depends_on:
+      mysql:
+        condition: service_healthy
+      servicio-recepcion:
+        condition: service_started
+
+  servicio-analytics:
+    build: ./servicio-analytics
+    container_name: hotelsync-analytics
+    restart: unless-stopped
+    ports:
+      - "3009:3009"
+    environment:
+      PORT: 3009
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: hotelsync_app
+      DB_PASSWORD: hotelsync_app_pass
+      DB_NAME: analytics_db
+      URL_SERVICIO_DISPONIBILIDAD: http://servicio-disponibilidad-tarifas:3001
+      URL_SERVICIO_RESERVAS: http://servicio-reservas:3002
+      URL_SERVICIO_PROPIEDADES: http://servicio-propiedades:3005
+    depends_on:
+      mysql:
+        condition: service_healthy
+      servicio-disponibilidad-tarifas:
+        condition: service_started
+      servicio-reservas:
+        condition: service_started
+      servicio-propiedades:
+        condition: service_started
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: hotelsync-api-gateway
+    restart: unless-stopped
+    ports:
+      - "3010:3010"
+    environment:
+      PORT: 3010
+      URL_SERVICIO_DISPONIBILIDAD: http://servicio-disponibilidad-tarifas:3001
+      URL_SERVICIO_RESERVAS: http://servicio-reservas:3002
+      URL_SERVICIO_RECEPCION: http://servicio-recepcion:3003
+      URL_SERVICIO_HOUSEKEEPING: http://servicio-housekeeping:3004
+      URL_SERVICIO_PROPIEDADES: http://servicio-propiedades:3005
+      URL_SERVICIO_CHANNEL_MANAGER: http://servicio-channel-manager:3006
+      URL_SERVICIO_FACTURACION: http://servicio-facturacion:3007
+      URL_SERVICIO_FIDELIZACION: http://servicio-fidelizacion:3008
+      URL_SERVICIO_ANALYTICS: http://servicio-analytics:3009
+    depends_on:
+      - servicio-disponibilidad-tarifas
+      - servicio-reservas
+      - servicio-recepcion
+      - servicio-housekeeping
+      - servicio-propiedades
+      - servicio-channel-manager
+      - servicio-facturacion
+      - servicio-fidelizacion
+      - servicio-analytics
+
+volumes:
+  hotelsync_mysql_data:

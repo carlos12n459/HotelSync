@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HotelSync — Demo completa de microservicios</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 1100px; margin: 40px auto; padding: 0 16px; color: #1a1a1a; }
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.1rem; margin-top: 0; }
+  section { border: 1px solid #ddd; border-radius: 10px; padding: 16px; margin-bottom: 20px; }
+  label { display: block; margin-top: 8px; font-size: 0.85rem; color: #555; }
+  input, select { width: 100%; padding: 6px 8px; box-sizing: border-box; }
+  button { margin-top: 12px; padding: 8px 16px; cursor: pointer; }
+  pre { background: #f5f5f5; padding: 10px; border-radius: 6px; overflow-x: auto; font-size: 0.8rem; }
+  .fila { display: flex; gap: 12px; flex-wrap: wrap; }
+  .fila > div { flex: 1; min-width: 140px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .nav { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+  .nav button { margin-top: 0; }
+</style>
+</head>
+<body>
+  <h1>HotelSync — Demo completa de microservicios</h1>
+  <p>Base URL del API Gateway: <code id="base-url">http://localhost:3010</code></p>
+  <div class="nav">
+    <button onclick="cambiarUrl('http://localhost:3010')">Local (Gateway)</button>
+    <button onclick="cambiarUrl('http://localhost:3001')">Disponibilidad</button>
+    <button onclick="cambiarUrl('http://localhost:3002')">Reservas</button>
+    <button onclick="cambiarUrl('http://localhost:3003')">Recepción</button>
+    <button onclick="cambiarUrl('http://localhost:3004')">Housekeeping</button>
+  </div>
+
+  <div class="grid">
+    <section>
+      <h2>1. Catálogo de propiedades</h2>
+      <button onclick="listarHoteles()">Listar hoteles</button>
+      <button onclick="listarTiposHabitacion()">Tipos habitación</button>
+      <pre id="r-propiedades"></pre>
+    </section>
+
+    <section>
+      <h2>2. Disponibilidad</h2>
+      <div class="fila">
+        <div><label>Tipo habitación id</label><input id="d-tipo" value="1" /></div>
+        <div><label>Check-in</label><input id="d-in" type="date" /></div>
+        <div><label>Check-out</label><input id="d-out" type="date" /></div>
+      </div>
+      <button onclick="consultarDisponibilidad()">Consultar</button>
+      <pre id="r-disponibilidad"></pre>
+    </section>
+
+    <section>
+      <h2>3. Crear reserva</h2>
+      <div class="fila">
+        <div><label>Nombre</label><input id="r-nombre" value="María Pérez" /></div>
+        <div><label>Email</label><input id="r-email" value="maria@example.com" /></div>
+      </div>
+      <div class="fila">
+        <div><label>Hotel id</label><input id="r-hotel" value="1" /></div>
+        <div><label>Tipo habitación id</label><input id="r-tipo-hab" value="1" /></div>
+        <div><label>Monto total</label><input id="r-monto" value="360000" /></div>
+      </div>
+      <div class="fila">
+        <div><label>Check-in</label><input id="r-in" type="date" /></div>
+        <div><label>Check-out</label><input id="r-out" type="date" /></div>
+      </div>
+      <button onclick="crearReserva()">Crear reserva</button>
+      <pre id="r-reserva"></pre>
+    </section>
+
+    <section>
+      <h2>4. Recepción</h2>
+      <div class="fila">
+        <div><label>Hotel id</label><input id="rec-hotel" value="1" /></div>
+        <div><label>Fecha</label><input id="rec-fecha" type="date" /></div>
+      </div>
+      <button onclick="iniciarTurno()">Iniciar turno</button>
+      <button onclick="listarLlegadas()">Llegadas</button>
+      <hr />
+      <div class="fila">
+        <div><label>Reserva id</label><input id="rec-reserva-id" value="1" /></div>
+        <div><label>Habitación</label><input id="rec-habitacion" value="101" /></div>
+      </div>
+      <button onclick="checkin()">Check-in</button>
+      <button onclick="checkout()">Checkout</button>
+      <pre id="r-recepcion"></pre>
+    </section>
+
+    <section>
+      <h2>5. Housekeeping</h2>
+      <button onclick="listarHabitaciones()">Listar habitaciones</button>
+      <div class="fila">
+        <div><label>Habitación</label><input id="hk-habitacion" value="101" /></div>
+        <div><label>Estado</label>
+          <select id="hk-estado">
+            <option value="sucia">sucia</option>
+            <option value="en_limpieza">en_limpieza</option>
+            <option value="lista" selected>lista</option>
+            <option value="mantenimiento">mantenimiento</option>
+          </select>
+        </div>
+      </div>
+      <button onclick="consultarEstadoHabitacion()">Consultar estado</button>
+      <button onclick="actualizarEstadoHabitacion()">Actualizar estado</button>
+      <pre id="r-housekeeping"></pre>
+    </section>
+
+    <section>
+      <h2>6. Facturación</h2>
+      <button onclick="listarFolios()">Listar folios</button>
+      <button onclick="listarFacturas()">Listar facturas</button>
+      <pre id="r-facturacion"></pre>
+    </section>
+
+    <section>
+      <h2>7. Fidelización</h2>
+      <div class="fila">
+        <div><label>Guest id</label><input id="fid-guest" value="1" /></div>
+      </div>
+      <button onclick="consultarCuenta()">Consultar cuenta</button>
+      <button onclick="listarTransacciones()">Transacciones</button>
+      <pre id="r-fidelizacion"></pre>
+    </section>
+
+    <section>
+      <h2>8. Analytics</h2>
+      <button onclick="ejecutarETL()">Ejecutar ETL</button>
+      <button onclick="listarKPIs()">Listar KPIs</button>
+      <pre id="r-analytics"></pre>
+    </section>
+  </div>
+
+  <script>
+    let BASE = "http://localhost:3010";
+
+    function cambiarUrl(url) {
+      BASE = url;
+      document.getElementById("base-url").textContent = BASE;
+    }
+
+    async function get(ruta) {
+      const resp = await fetch(`${BASE}${ruta}`);
+      return resp.json();
+    }
+
+    async function post(ruta, body) {
+      const opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+      const resp = await fetch(`${BASE}${ruta}`, opts);
+      return resp.json();
+    }
+
+    async function patch(ruta) {
+      const resp = await fetch(`${BASE}${ruta}`, { method: "PATCH" });
+      return resp.json();
+    }
+
+    function set(id, data) {
+      document.getElementById(id).textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function listarHoteles() { set("r-propiedades", await get("/propiedades/hoteles")); }
+    async function listarTiposHabitacion() { set("r-propiedades", await get("/propiedades/hoteles/1/tipos-habitacion")); }
+
+    async function consultarDisponibilidad() {
+      const tipo = document.getElementById("d-tipo").value;
+      const checkin = document.getElementById("d-in").value;
+      const checkout = document.getElementById("d-out").value;
+      set("r-disponibilidad", await get(`/disponibilidad/disponibilidad?tipo_habitacion_id=${tipo}&checkin=${checkin}&checkout=${checkout}`));
+    }
+
+    async function crearReserva() {
+      const body = {
+        nombre_huesped: document.getElementById("r-nombre").value,
+        email_huesped: document.getElementById("r-email").value,
+        hotel_id: Number(document.getElementById("r-hotel").value),
+        tipo_habitacion_id: Number(document.getElementById("r-tipo-hab").value),
+        fecha_checkin: document.getElementById("r-in").value,
+        fecha_checkout: document.getElementById("r-out").value,
+        monto_total: Number(document.getElementById("r-monto").value)
+      };
+      set("r-reserva", await post("/reservas/reservas", body));
+    }
+
+    async function iniciarTurno() {
+      const body = {
+        hotel_id: Number(document.getElementById("rec-hotel").value),
+        fecha: document.getElementById("rec-fecha").value
+      };
+      set("r-recepcion", await post("/recepcion/recepcion/iniciar-turno", body));
+    }
+
+    async function listarLlegadas() {
+      const hotel_id = document.getElementById("rec-hotel").value;
+      const fecha = document.getElementById("rec-fecha").value;
+      set("r-recepcion", await get(`/recepcion/recepcion/llegadas?hotel_id=${hotel_id}&fecha_checkin=${fecha}`));
+    }
+
+    async function checkin() {
+      const body = {
+        reserva_id: Number(document.getElementById("rec-reserva-id").value),
+        numero_habitacion: document.getElementById("rec-habitacion").value
+      };
+      set("r-recepcion", await post("/recepcion/recepcion/checkin", body));
+    }
+
+    async function checkout() {
+      const body = { reserva_id: Number(document.getElementById("rec-reserva-id").value) };
+      set("r-recepcion", await post("/recepcion/recepcion/checkout", body));
+    }
+
+    async function listarHabitaciones() { set("r-housekeeping", await get("/housekeeping/housekeeping/habitaciones")); }
+
+    async function consultarEstadoHabitacion() {
+      const num = document.getElementById("hk-habitacion").value;
+      set("r-housekeeping", await get(`/housekeeping/housekeeping/habitaciones/${num}/estado`));
+    }
+
+    async function actualizarEstadoHabitacion() {
+      const num = document.getElementById("hk-habitacion").value;
+      const estado = document.getElementById("hk-estado").value;
+      set("r-housekeeping", await patch(`/housekeeping/housekeeping/habitaciones/${num}/estado`, { estado }));
+    }
+
+    async function listarFolios() { set("r-facturacion", await get("/facturacion/facturacion/folios")); }
+    async function listarFacturas() { set("r-facturacion", await get("/facturacion/facturacion/facturas")); }
+
+    async function consultarCuenta() {
+      const guest = document.getElementById("fid-guest").value;
+      set("r-fidelizacion", await get(`/fidelizacion/fidelizacion/cuentas/${guest}`));
+    }
+
+    async function listarTransacciones() {
+      const guest = document.getElementById("fid-guest").value;
+      set("r-fidelizacion", await get(`/fidelizacion/fidelizacion/cuentas/${guest}/transacciones`));
+    }
+
+    async function ejecutarETL() { set("r-analytics", await post("/analytics/analytics/etl", {})); }
+    async function listarKPIs() { set("r-analytics", await get("/analytics/analytics/kpis")); }
+  </script>
+</body>
+</html>

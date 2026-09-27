@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>HotelSync — Demo de microservicios</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 16px; color: #1a1a1a; }
+  h1 { font-size: 1.4rem; }
+  section { border: 1px solid #ddd; border-radius: 10px; padding: 16px; margin-bottom: 20px; }
+  label { display: block; margin-top: 8px; font-size: 0.85rem; color: #555; }
+  input { width: 100%; padding: 6px 8px; box-sizing: border-box; }
+  button { margin-top: 12px; padding: 8px 16px; cursor: pointer; }
+  pre { background: #f5f5f5; padding: 10px; border-radius: 6px; overflow-x: auto; font-size: 0.8rem; }
+  .fila { display: flex; gap: 12px; }
+  .fila > div { flex: 1; }
+</style>
+</head>
+<body>
+  <h1>HotelSync — Demo de comunicación entre microservicios</h1>
+  <p>Servicio de disponibilidad y tarifas: <code>http://localhost:3001</code> &nbsp;|&nbsp;
+     Servicio de reservas: <code>http://localhost:3002</code></p>
+
+  <section>
+    <h2>1. Consultar disponibilidad (síncrono, solo lectura)</h2>
+    <div class="fila">
+      <div><label>Tipo de habitación (id)</label><input id="d-tipo" value="1" /></div>
+      <div><label>Check-in</label><input id="d-in" type="date" /></div>
+      <div><label>Check-out</label><input id="d-out" type="date" /></div>
+    </div>
+    <button onclick="consultarDisponibilidad()">Consultar</button>
+    <pre id="d-resultado"></pre>
+  </section>
+
+  <section>
+    <h2>2. Crear reserva (dispara bloqueo síncrono entre microservicios)</h2>
+    <div class="fila">
+      <div><label>Nombre del huésped</label><input id="r-nombre" value="María Pérez" /></div>
+      <div><label>Email</label><input id="r-email" value="maria@example.com" /></div>
+    </div>
+    <div class="fila">
+      <div><label>Tipo de habitación (id)</label><input id="r-tipo" value="1" /></div>
+      <div><label>Hotel (id)</label><input id="r-hotel" value="1" /></div>
+      <div><label>Monto total</label><input id="r-monto" value="360000" /></div>
+    </div>
+    <div class="fila">
+      <div><label>Check-in</label><input id="r-in" type="date" /></div>
+      <div><label>Check-out</label><input id="r-out" type="date" /></div>
+    </div>
+    <button onclick="crearReserva()">Crear reserva</button>
+    <pre id="r-resultado"></pre>
+  </section>
+
+  <section>
+    <h2>3. Cancelar reserva (dispara evento asíncrono de liberación)</h2>
+    <label>ID de la reserva</label>
+    <input id="c-id" value="1" />
+    <button onclick="cancelarReserva()">Cancelar reserva</button>
+    <pre id="c-resultado"></pre>
+    <p style="font-size:0.85rem;color:#555;">
+      Después de cancelar, vuelve al paso 1 y consulta la misma fecha:
+      verás que la disponibilidad tarda unos segundos en subir porque la
+      libera de forma <strong>asíncrona</strong> el proceso de "polling"
+      del servicio de disponibilidad (revisa eventos pendientes cada 4s).
+    </p>
+  </section>
+
+  <script>
+    const URL_DISPONIBILIDAD = "http://localhost:3001";
+    const URL_RESERVAS = "http://localhost:3002";
+
+    async function consultarDisponibilidad() {
+      const tipo = document.getElementById("d-tipo").value;
+      const checkin = document.getElementById("d-in").value;
+      const checkout = document.getElementById("d-out").value;
+      const resp = await fetch(`${URL_DISPONIBILIDAD}/api/disponibilidad?tipo_habitacion_id=${tipo}&checkin=${checkin}&checkout=${checkout}`);
+      document.getElementById("d-resultado").textContent = JSON.stringify(await resp.json(), null, 2);
+    }
+
+    async function crearReserva() {
+      const cuerpo = {
+        nombre_huesped: document.getElementById("r-nombre").value,
+        email_huesped: document.getElementById("r-email").value,
+        hotel_id: Number(document.getElementById("r-hotel").value),
+        tipo_habitacion_id: Number(document.getElementById("r-tipo").value),
+        fecha_checkin: document.getElementById("r-in").value,
+        fecha_checkout: document.getElementById("r-out").value,
+        monto_total: Number(document.getElementById("r-monto").value)
+      };
+      const resp = await fetch(`${URL_RESERVAS}/api/reservas`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cuerpo)
+      });
+      document.getElementById("r-resultado").textContent = JSON.stringify(await resp.json(), null, 2);
+    }
+
+    async function cancelarReserva() {
+      const id = document.getElementById("c-id").value;
+      const resp = await fetch(`${URL_RESERVAS}/api/reservas/${id}/cancelar`, { method: "PATCH" });
+      document.getElementById("c-resultado").textContent = JSON.stringify(await resp.json(), null, 2);
+    }
+  </script>
+</body>
+</html>
