@@ -15,22 +15,68 @@ async function registrarEventoSaliente(tipo, payload) {
   console.log(`[recepcion] Evento registrado en outbox: ${tipo}`, payload);
 }
 
-/** GET /api/eventos/pendientes?tipo=checkout.completed — lo consulta housekeeping. */
+/** GET /api/eventos/pendientes?tipo=checkout.completed&consumidor=housekeeping */
 async function listarEventosPendientes(req, res) {
-  const { tipo } = req.query;
+  const { tipo, consumidor } = req.query;
   const [filas] = await pool.query(
-    "SELECT id, tipo, payload, creado_en FROM eventos_salientes WHERE procesado = FALSE AND (? IS NULL OR tipo = ?) ORDER BY id ASC",
-    [tipo || null, tipo || null]
+    `SELECT e.id, e.tipo, e.payload, e.creado_en
+     FROM eventos_salientes e
+     WHERE e.procesado = FALSE
+       AND (? IS NULL OR e.tipo = ?)
+       AND (? IS NULL OR NOT EXISTS (
+         SELECT 1 FROM confirmaciones_eventos c
+         WHERE c.evento_id = e.id AND c.consumidor = ?
+       ))
+     ORDER BY e.id ASC`,
+    [tipo || null, tipo || null, consumidor || null, consumidor || null]
   );
   res.json(filas);
 }
 
-/** POST /api/eventos/:id/confirmar — housekeeping lo llama tras procesar el evento. */
+/**
+ * POST /api/eventos/:id/confirmar
+ * Body opcional: { consumidor: "housekeeping" }
+ * Registra la confirmación de un consumidor. El evento se marca como
+ * procesado solo cuando todos los consumidores interesados lo hayan
+ * confirmado. Para simplificar, asumimos que hay 2 consumidores de
+ * checkout.completed: facturacion y housekeeping.
+ */
 async function confirmarEventoProcesado(req, res) {
-  await pool.query(
-    "UPDATE eventos_salientes SET procesado = TRUE, procesado_en = NOW() WHERE id = ?",
-    [req.params.id]
-  );
+  const { consumidor } = req.body || {};
+  const eventoId = req.params.id;
+
+  if (consumidor) {
+    await pool.query(
+      "INSERT INTO confirmaciones_eventos (evento_id, consumidor) VALUES (?, ?) ON DUPLICATE KEY UPDATE confirmado_en = NOW()",
+      [eventoId, consumidor]
+    );
+
+    const [confirmaciones] = await pool.query(
+      "SELECT DISTINCT consumidor FROM confirmaciones_eventos WHERE evento_id = ?",
+      [eventoId]
+    );
+
+    // Para checkout.completed se esperan confirmaciones de facturacion y housekeeping.
+    // Para booking.completed se espera confirmación de fidelizacion.
+    const consumidoresConfirmados = confirmaciones.map((c) => c.consumidor);
+    const completamenteProcesado =
+      consumidoresConfirmados.includes("facturacion") &&
+      consumidoresConfirmados.includes("housekeeping");
+
+    if (completamenteProcesado) {
+      await pool.query(
+        "UPDATE eventos_salientes SET procesado = TRUE, procesado_en = NOW() WHERE id = ?",
+        [eventoId]
+      );
+    }
+  } else {
+    // Comportamiento legacy: marcar directamente como procesado.
+    await pool.query(
+      "UPDATE eventos_salientes SET procesado = TRUE, procesado_en = NOW() WHERE id = ?",
+      [eventoId]
+    );
+  }
+
   res.json({ confirmado: true });
 }
 

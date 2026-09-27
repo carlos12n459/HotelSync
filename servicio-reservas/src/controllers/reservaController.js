@@ -71,7 +71,7 @@ async function crearReserva(req, res) {
       [huespedId, nombre_huesped, email_huesped, hotel_id, tipo_habitacion_id, fecha_checkin, fecha_checkout, canal, monto_total]
     );
 
-    reserva = { id: resultado.insertId, guest_id: huespedId, ...req.body, estado: "confirmada" };
+    reserva = { id: resultado.insertId, guest_id: huespedId, ...req.body, canal, estado: "confirmada" };
   } catch (error) {
     // Si no se pudo guardar la reserva, liberamos el inventario bloqueado
     // para no dejarlo inconsistente.

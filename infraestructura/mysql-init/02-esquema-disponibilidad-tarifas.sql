@@ -57,4 +57,4 @@ CROSS JOIN (
     HAVING n < 30
   ) numeros
 ) fechas
-ON DUPLICATE KEY UPDATE cantidad_disponible = cantidad_disponible;
+;

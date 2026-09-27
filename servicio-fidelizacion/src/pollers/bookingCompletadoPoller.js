@@ -16,7 +16,7 @@ const INTERVALO_MS = Number(process.env.INTERVALO_POLLING_MS || 4000);
 async function revisarEventosPendientes() {
   try {
     const respuesta = await axios.get(`${URL_RECEPCION}/api/eventos/pendientes`, {
-      params: { tipo: "booking.completed" }
+      params: { tipo: "booking.completed", consumidor: "fidelizacion" }
     });
 
     const eventos = respuesta.data;
@@ -46,7 +46,7 @@ async function revisarEventosPendientes() {
       if (!reserva.guest_id) {
         console.warn(`[fidelizacion] La reserva ${reserva.id} no tiene guest_id asociado; no se pueden acumular puntos`);
         // Se confirma para evitar que el evento se reprocese indefinidamente.
-        await axios.post(`${URL_RECEPCION}/api/eventos/${evento.id}/confirmar`);
+        await axios.post(`${URL_RECEPCION}/api/eventos/${evento.id}/confirmar`, { consumidor: "fidelizacion" });
         continue;
       }
 
@@ -68,7 +68,7 @@ async function revisarEventosPendientes() {
           [String(evento.id), datosAcumulacion.reserva_id]
         );
 
-        await axios.post(`${URL_RECEPCION}/api/eventos/${evento.id}/confirmar`);
+        await axios.post(`${URL_RECEPCION}/api/eventos/${evento.id}/confirmar`, { consumidor: "fidelizacion" });
         console.log(`[fidelizacion] Evento ${evento.id} procesado y confirmado (reserva #${datosAcumulacion.reserva_id})`);
       } catch (error) {
         console.error(`[fidelizacion] Error procesando evento ${evento.id}:`, error.message);

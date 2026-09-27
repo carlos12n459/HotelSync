@@ -13,7 +13,7 @@ const INTERVALO_MS = Number(process.env.INTERVALO_POLLING_MS || 4000);
 async function revisarEventosPendientes() {
   try {
     const respuesta = await axios.get(`${URL_RECEPCION}/api/eventos/pendientes`, {
-      params: { tipo: "checkout.completed" }
+      params: { tipo: "checkout.completed", consumidor: "facturacion" }
     });
 
     const eventos = respuesta.data;
@@ -25,7 +25,7 @@ async function revisarEventosPendientes() {
       const procesado = await procesarCheckoutCompletado(evento);
       if (procesado) {
         const payload = typeof evento.payload === "string" ? JSON.parse(evento.payload) : evento.payload;
-        await axios.post(`${URL_RECEPCION}/api/eventos/${evento.id}/confirmar`);
+        await axios.post(`${URL_RECEPCION}/api/eventos/${evento.id}/confirmar`, { consumidor: "facturacion" });
         console.log(`[facturacion] Evento ${evento.id} procesado y confirmado (reserva #${payload.reserva_id})`);
       }
     }

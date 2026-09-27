@@ -5,7 +5,6 @@ const { createProxyMiddleware } = require("http-proxy-middleware");
 
 const app = express();
 app.use(cors());
-app.use(express.json());
 
 const servicios = {
   "/disponibilidad": process.env.URL_SERVICIO_DISPONIBILIDAD,
@@ -28,7 +27,7 @@ for (const [ruta, target] of Object.entries(servicios)) {
     createProxyMiddleware({
       target,
       changeOrigin: true,
-      pathRewrite: { [`^${ruta}`]: "/api" },
+      pathRewrite: (path) => `/api${path}`,
       onError: (err, req, res) => {
         res.status(502).json({ error: `Servicio ${ruta} no disponible`, detalle: err.message });
       }

@@ -44,8 +44,8 @@ CREATE TABLE IF NOT EXISTS incidencias_huesped (
 );
 
 -- Tabla de eventos salientes (patrón "outbox", igual que en servicio-reservas):
--- aquí recepción anota checkout.completed para que housekeeping lo recoja
--- por polling, sin que recepción tenga que esperar a que se procese.
+-- aquí recepción anota checkout.completed y booking.completed para que otros
+-- servicios los recojan por polling.
 CREATE TABLE IF NOT EXISTS eventos_salientes (
   id            INT AUTO_INCREMENT PRIMARY KEY,
   tipo          VARCHAR(50) NOT NULL,
@@ -53,4 +53,18 @@ CREATE TABLE IF NOT EXISTS eventos_salientes (
   procesado     BOOLEAN NOT NULL DEFAULT FALSE,
   creado_en     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   procesado_en  DATETIME NULL
+);
+
+-- Confirmaciones por consumidor: permite que varios servicios (facturación,
+-- housekeeping, etc.) procesen el mismo evento sin que uno lo marque como
+-- "procesado" antes de que los demás lo vean.
+CREATE TABLE IF NOT EXISTS confirmaciones_eventos (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  evento_id     INT NOT NULL,
+  consumidor    VARCHAR(50) NOT NULL,
+  confirmado_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY unico_evento_consumidor (evento_id, consumidor),
+  CONSTRAINT fk_confirmaciones_evento
+    FOREIGN KEY (evento_id) REFERENCES eventos_salientes(id)
+    ON DELETE CASCADE
 );

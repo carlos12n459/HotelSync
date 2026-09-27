@@ -141,15 +141,30 @@ async function checkout(req, res) {
   const asignacion = asignaciones[0];
   await pool.query("UPDATE asignaciones_habitacion SET checkout_en = NOW() WHERE id = ?", [asignacion.id]);
 
-  const [llegadaFilas] = await pool.query("SELECT hotel_id FROM llegadas WHERE reserva_id = ?", [reserva_id]);
-  const hotel_id = llegadaFilas[0] ? llegadaFilas[0].hotel_id : null;
+  const [llegadaFilas] = await pool.query("SELECT hotel_id, monto_total FROM llegadas WHERE reserva_id = ?", [reserva_id]);
+  let hotel_id = llegadaFilas[0] ? llegadaFilas[0].hotel_id : null;
+  let monto_total = llegadaFilas[0] ? llegadaFilas[0].monto_total : null;
+
+  // Si no llegó por el evento async, consultamos a reservas para completar datos.
+  if (!hotel_id || !monto_total) {
+    try {
+      const reserva = await reservasClient.consultarReservaPorId(reserva_id);
+      if (reserva) {
+        hotel_id = hotel_id || reserva.hotel_id;
+        monto_total = monto_total || reserva.monto_total;
+      }
+    } catch (error) {
+      console.warn("[recepcion] No se pudo complementar datos de la reserva:", error.message);
+    }
+  }
 
   // Se responde al huésped de inmediato; housekeeping y facturación procesarán
   // los eventos cuando lo consulten (asíncrono), sin que recepción tenga que esperar.
   await registrarEventoSaliente("checkout.completed", {
     reserva_id: Number(reserva_id),
     numero_habitacion: asignacion.numero_habitacion,
-    hotel_id
+    hotel_id,
+    monto_total
   });
 
   // booking.completed notifica a fidelización para acumulación de puntos.
@@ -157,7 +172,7 @@ async function checkout(req, res) {
     reserva_id: Number(reserva_id),
     numero_habitacion: asignacion.numero_habitacion,
     hotel_id,
-    monto_total: llegadaFilas[0] ? llegadaFilas[0].monto_total : null
+    monto_total
   });
 
   res.json({ ...asignacion, checkout_en: new Date().toISOString() });

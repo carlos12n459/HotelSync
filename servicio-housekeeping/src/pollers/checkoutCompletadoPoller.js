@@ -14,7 +14,7 @@ const INTERVALO_MS = Number(process.env.INTERVALO_POLLING_MS || 4000);
 async function revisarEventosPendientes() {
   try {
     const respuesta = await axios.get(`${URL_RECEPCION}/api/eventos/pendientes`, {
-      params: { tipo: "checkout.completed" }
+      params: { tipo: "checkout.completed", consumidor: "housekeeping" }
     });
 
     const eventos = respuesta.data;
@@ -27,7 +27,7 @@ async function revisarEventosPendientes() {
 
       await generarTareaLimpiezaPorCheckout(payload);
 
-      await axios.post(`${URL_RECEPCION}/api/eventos/${evento.id}/confirmar`);
+      await axios.post(`${URL_RECEPCION}/api/eventos/${evento.id}/confirmar`, { consumidor: "housekeeping" });
       console.log(`[housekeeping] Evento ${evento.id} procesado: habitación ${payload.numero_habitacion} marcada "sucia"`);
     }
   } catch (error) {
