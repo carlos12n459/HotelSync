@@ -1,11 +1,12 @@
 const pool = require("../config/baseDeDatos");
-const { registrarEventoSaliente } = require("../eventos/eventosOutbox");
+const { publish } = require("../eventos/rabbitmq");
+const { connectRedis, client, cacheKey } = require("../cache/redis");
 
 /** Emite el evento availability.updated para un rango de fechas. */
 async function notificarCambioDisponibilidad(tipo_habitacion_id, checkin, checkout) {
   const fechas = generarRangoDeFechas(checkin, checkout);
   try {
-    await registrarEventoSaliente("availability.updated", {
+    await publish("availability.updated", {
       tipo_habitacion_id: Number(tipo_habitacion_id),
       checkin,
       checkout,
@@ -13,7 +14,17 @@ async function notificarCambioDisponibilidad(tipo_habitacion_id, checkin, checko
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error("[disponibilidad-tarifas] No se pudo registrar availability.updated:", error.message);
+    console.error("[disponibilidad-tarifas] No se pudo publicar availability.updated:", error.message);
+  }
+}
+
+/** Invalida la cache de disponibilidad para un rango de fechas. */
+async function invalidarCache(tipo_habitacion_id, checkin, checkout) {
+  try {
+    await connectRedis();
+    await client.del(cacheKey(tipo_habitacion_id, checkin, checkout));
+  } catch (error) {
+    console.warn("[disponibilidad-tarifas] No se pudo invalidar cache:", error.message);
   }
 }
 
@@ -29,16 +40,17 @@ function generarRangoDeFechas(checkin, checkout) {
   return fechas;
 }
 
-/** GET /api/tipos-habitacion — catálogo simple para poblar el frontend/pruebas. */
+/** GET /api/tipos-habitacion — catalogo simple para poblar el frontend/pruebas. */
 async function listarTiposHabitacion(req, res) {
-  const [filas] = await pool.query("SELECT * FROM tipos_habitacion");
-  res.json(filas);
+  const { rows } = await pool.query("SELECT * FROM tipos_habitacion");
+  res.json(rows);
 }
 
 /**
  * GET /api/disponibilidad?tipo_habitacion_id=&checkin=&checkout=
- * Consulta síncrona de solo lectura: cuántas habitaciones quedan libres
- * en TODO el rango de fechas solicitado (el mínimo día a día).
+ * Consulta sincrona de solo lectura: cuantas habitaciones quedan libres
+ * en TODO el rango de fechas solicitado (el minimo dia a dia).
+ * Usa Redis como cache de lectura.
  */
 async function consultarDisponibilidad(req, res) {
   const { tipo_habitacion_id, checkin, checkout } = req.query;
@@ -50,11 +62,22 @@ async function consultarDisponibilidad(req, res) {
   }
 
   const fechas = generarRangoDeFechas(checkin, checkout);
+  const key = cacheKey(tipo_habitacion_id, checkin, checkout);
 
-  const [filas] = await pool.query(
+  try {
+    await connectRedis();
+    const cached = await client.get(key);
+    if (cached) {
+      return res.json(JSON.parse(cached));
+    }
+  } catch (error) {
+    console.warn("[disponibilidad-tarifas] Cache no disponible:", error.message);
+  }
+
+  const { rows: filas } = await pool.query(
     `SELECT fecha, (cantidad_disponible - cantidad_bloqueada) AS libres
      FROM inventario
-     WHERE tipo_habitacion_id = ? AND fecha IN (?)`,
+     WHERE tipo_habitacion_id = $1 AND fecha = ANY($2::date[])`,
     [tipo_habitacion_id, fechas]
   );
 
@@ -63,16 +86,22 @@ async function consultarDisponibilidad(req, res) {
   }
 
   const minimoLibres = Math.min(...filas.map((f) => f.libres));
-  res.json({ disponible: minimoLibres > 0, habitaciones_libres: minimoLibres });
+  const resultado = { disponible: minimoLibres > 0, habitaciones_libres: minimoLibres };
+
+  try {
+    await client.setEx(key, 60, JSON.stringify(resultado));
+  } catch (error) {
+    console.warn("[disponibilidad-tarifas] No se pudo guardar cache:", error.message);
+  }
+
+  res.json(resultado);
 }
 
 /**
  * POST /api/disponibilidad/bloquear
- * Llamada SÍNCRONA que hace el servicio de reservas antes de confirmar
- * una reserva. Usa una transacción con bloqueo de filas (FOR UPDATE)
- * para que, si dos reservas llegan casi al mismo tiempo por la misma
- * habitación, solo una de las dos logre bloquear el inventario y la
- * otra reciba un 409 (evitando así la sobreventa).
+ * Llamada SINCRONA que hace el servicio de reservas antes de confirmar
+ * una reserva. Usa una transaccion con bloqueo de filas (FOR UPDATE)
+ * para evitar sobreventa.
  */
 async function bloquearInventario(req, res) {
   const { tipo_habitacion_id, checkin, checkout, cantidad = 1 } = req.body;
@@ -84,15 +113,15 @@ async function bloquearInventario(req, res) {
   }
 
   const fechas = generarRangoDeFechas(checkin, checkout);
-  const conexion = await pool.getConnection();
+  const cliente = await pool.connect();
 
   try {
-    await conexion.beginTransaction();
+    await cliente.query("BEGIN");
 
-    const [filas] = await conexion.query(
+    const { rows: filas } = await cliente.query(
       `SELECT id, fecha, cantidad_disponible, cantidad_bloqueada
        FROM inventario
-       WHERE tipo_habitacion_id = ? AND fecha IN (?)
+       WHERE tipo_habitacion_id = $1 AND fecha = ANY($2::date[])
        FOR UPDATE`,
       [tipo_habitacion_id, fechas]
     );
@@ -103,37 +132,37 @@ async function bloquearInventario(req, res) {
     );
 
     if (hayInventarioIncompleto || !hayDisponibilidad) {
-      await conexion.rollback();
+      await cliente.query("ROLLBACK");
       return res.status(409).json({
         error: "No hay disponibilidad suficiente para el rango solicitado"
       });
     }
 
-    await conexion.query(
+    await cliente.query(
       `UPDATE inventario
-       SET cantidad_bloqueada = cantidad_bloqueada + ?
-       WHERE tipo_habitacion_id = ? AND fecha IN (?)`,
+       SET cantidad_bloqueada = cantidad_bloqueada + $1
+       WHERE tipo_habitacion_id = $2 AND fecha = ANY($3::date[])`,
       [cantidad, tipo_habitacion_id, fechas]
     );
 
-    await conexion.commit();
+    await cliente.query("COMMIT");
 
-    // Notificar el cambio de inventario de forma asíncrona.
+    await invalidarCache(tipo_habitacion_id, checkin, checkout);
     await notificarCambioDisponibilidad(tipo_habitacion_id, checkin, checkout);
 
     res.json({ bloqueado: true });
   } catch (error) {
-    await conexion.rollback();
+    await cliente.query("ROLLBACK");
     res.status(500).json({ error: "Error al bloquear el inventario", detalle: error.message });
   } finally {
-    conexion.release();
+    cliente.release();
   }
 }
 
 /**
  * Libera inventario previamente bloqueado. La usa directamente el
  * consumidor de eventos (booking.cancelled) cuando una reserva se
- * cancela, pero también se expone como endpoint REST por si se
+ * cancela, pero tambien se expone como endpoint REST por si se
  * necesita liberar manualmente durante las pruebas.
  */
 async function liberarInventario({ tipo_habitacion_id, checkin, checkout, cantidad = 1 }) {
@@ -141,15 +170,16 @@ async function liberarInventario({ tipo_habitacion_id, checkin, checkout, cantid
 
   await pool.query(
     `UPDATE inventario
-     SET cantidad_bloqueada = GREATEST(cantidad_bloqueada - ?, 0)
-     WHERE tipo_habitacion_id = ? AND fecha IN (?)`,
+     SET cantidad_bloqueada = GREATEST(cantidad_bloqueada - $1, 0)
+     WHERE tipo_habitacion_id = $2 AND fecha = ANY($3::date[])`,
     [cantidad, tipo_habitacion_id, fechas]
   );
 
+  await invalidarCache(tipo_habitacion_id, checkin, checkout);
   await notificarCambioDisponibilidad(tipo_habitacion_id, checkin, checkout);
 }
 
-/** POST /api/disponibilidad/liberar — versión REST manual de liberarInventario. */
+/** POST /api/disponibilidad/liberar — version REST manual de liberarInventario. */
 async function liberarInventarioEndpoint(req, res) {
   try {
     await liberarInventario(req.body);

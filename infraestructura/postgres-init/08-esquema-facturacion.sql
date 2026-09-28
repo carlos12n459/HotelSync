@@ -1,31 +1,33 @@
-USE facturacion_db;
+\c facturacion_db
+GRANT ALL ON SCHEMA public TO hotelsync_app;
+SET ROLE hotelsync_app;
 
--- Folio: cuenta maestra de una estadía/reserva.
+-- Folio: cuenta maestra de una estadia/reserva.
 CREATE TABLE IF NOT EXISTS folios (
-  id              INT AUTO_INCREMENT PRIMARY KEY,
-  reserva_id      INT NOT NULL,
-  hotel_id        INT NOT NULL,
-  huesped_id      INT NULL,
+  id              SERIAL PRIMARY KEY,
+  reserva_id      INTEGER NOT NULL,
+  hotel_id        INTEGER NOT NULL,
+  huesped_id      INTEGER NULL,
   moneda          VARCHAR(3) NOT NULL DEFAULT 'COP',
-  estado          ENUM('abierto', 'cerrado', 'cancelado') NOT NULL DEFAULT 'abierto',
+  estado          VARCHAR(20) NOT NULL DEFAULT 'abierto' CHECK (estado IN ('abierto', 'cerrado', 'cancelado')),
   total_cargos    DECIMAL(12,2) NOT NULL DEFAULT 0,
   total_impuestos DECIMAL(12,2) NOT NULL DEFAULT 0,
   total           DECIMAL(12,2) NOT NULL DEFAULT 0,
-  creado_en       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  cerrado_en      DATETIME NULL,
+  creado_en       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  cerrado_en      TIMESTAMP NULL,
 
-  UNIQUE KEY unico_reserva (reserva_id)
+  CONSTRAINT unico_reserva UNIQUE (reserva_id)
 );
 
--- Cargos individuales del folio (habitación, minibar, spa, restaurante, etc.).
+-- Cargos individuales del folio (habitacion, minibar, spa, restaurante, etc.).
 CREATE TABLE IF NOT EXISTS cargos (
-  id              INT AUTO_INCREMENT PRIMARY KEY,
-  folio_id        INT NOT NULL,
+  id              SERIAL PRIMARY KEY,
+  folio_id        INTEGER NOT NULL,
   concepto        VARCHAR(150) NOT NULL,
-  cantidad        INT NOT NULL DEFAULT 1,
+  cantidad        INTEGER NOT NULL DEFAULT 1,
   precio_unitario DECIMAL(12,2) NOT NULL,
   total           DECIMAL(12,2) NOT NULL,
-  agregado_en     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  agregado_en     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   CONSTRAINT fk_cargos_folio
     FOREIGN KEY (folio_id) REFERENCES folios(id)
@@ -34,12 +36,12 @@ CREATE TABLE IF NOT EXISTS cargos (
 
 -- Pagos realizados sobre un folio.
 CREATE TABLE IF NOT EXISTS pagos (
-  id              INT AUTO_INCREMENT PRIMARY KEY,
-  folio_id        INT NOT NULL,
+  id              SERIAL PRIMARY KEY,
+  folio_id        INTEGER NOT NULL,
   monto           DECIMAL(12,2) NOT NULL,
   metodo          VARCHAR(50) NOT NULL,
   referencia      VARCHAR(100) NULL,
-  pagado_en       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  pagado_en       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   CONSTRAINT fk_pagos_folio
     FOREIGN KEY (folio_id) REFERENCES folios(id)
@@ -48,13 +50,13 @@ CREATE TABLE IF NOT EXISTS pagos (
 
 -- Facturas finales emitidas al cerrar un folio.
 CREATE TABLE IF NOT EXISTS facturas (
-  id              INT AUTO_INCREMENT PRIMARY KEY,
-  folio_id        INT NOT NULL,
+  id              SERIAL PRIMARY KEY,
+  folio_id        INTEGER NOT NULL,
   numero          VARCHAR(50) NOT NULL UNIQUE,
-  reserva_id      INT NOT NULL,
+  reserva_id      INTEGER NOT NULL,
   total           DECIMAL(12,2) NOT NULL,
   moneda          VARCHAR(3) NOT NULL DEFAULT 'COP',
-  emitida_en      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  emitida_en      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   CONSTRAINT fk_facturas_folio
     FOREIGN KEY (folio_id) REFERENCES folios(id)
@@ -63,10 +65,10 @@ CREATE TABLE IF NOT EXISTS facturas (
 
 -- Tabla de eventos salientes (outbox) para notificar pagos/cierres.
 CREATE TABLE IF NOT EXISTS eventos_salientes (
-  id            INT AUTO_INCREMENT PRIMARY KEY,
+  id            SERIAL PRIMARY KEY,
   tipo          VARCHAR(50) NOT NULL,
-  payload       JSON NOT NULL,
+  payload       JSONB NOT NULL,
   procesado     BOOLEAN NOT NULL DEFAULT FALSE,
-  creado_en     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  procesado_en  DATETIME NULL
+  creado_en     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  procesado_en  TIMESTAMP NULL
 );

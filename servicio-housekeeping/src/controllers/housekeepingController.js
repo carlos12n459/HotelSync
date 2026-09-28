@@ -3,36 +3,34 @@ const pool = require("../config/baseDeDatos");
 /** GET /api/housekeeping/habitaciones?hotel_id= */
 async function listarHabitaciones(req, res) {
   const { hotel_id } = req.query;
-  const condiciones = hotel_id ? "WHERE hotel_id = ?" : "";
+  const condiciones = hotel_id ? "WHERE hotel_id = $1" : "";
   const parametros = hotel_id ? [hotel_id] : [];
 
-  const [filas] = await pool.query(
+  const { rows } = await pool.query(
     `SELECT * FROM estado_habitaciones ${condiciones} ORDER BY numero_habitacion ASC`,
     parametros
   );
-  res.json(filas);
+  res.json(rows);
 }
 
 /**
  * GET /api/housekeeping/habitaciones/:numero/estado
- * Consultada de forma SÍNCRONA por servicio-recepcion antes de un check-in.
+ * Consultada de forma SINCRONA por servicio-recepcion antes de un check-in.
  */
 async function consultarEstado(req, res) {
-  const [filas] = await pool.query(
-    "SELECT * FROM estado_habitaciones WHERE numero_habitacion = ?",
+  const { rows } = await pool.query(
+    "SELECT * FROM estado_habitaciones WHERE numero_habitacion = $1",
     [req.params.numero]
   );
 
-  if (filas.length === 0) {
-    return res.status(404).json({ error: "Habitación no registrada en housekeeping" });
+  if (rows.length === 0) {
+    return res.status(404).json({ error: "Habitacion no registrada en housekeeping" });
   }
-  res.json(filas[0]);
+  res.json(rows[0]);
 }
 
 /**
  * PATCH /api/housekeeping/habitaciones/:numero/estado
- * Actualización manual hecha por el personal de limpieza (ej. marcar
- * "en_limpieza" y luego "lista"), independiente del flujo automático.
  */
 async function actualizarEstado(req, res) {
   const { numero } = req.params;
@@ -43,45 +41,50 @@ async function actualizarEstado(req, res) {
     return res.status(400).json({ error: `estado debe ser uno de: ${estadosValidos.join(", ")}` });
   }
 
-  const [existente] = await pool.query("SELECT * FROM estado_habitaciones WHERE numero_habitacion = ?", [numero]);
+  const { rows: existente } = await pool.query("SELECT * FROM estado_habitaciones WHERE numero_habitacion = $1", [numero]);
   const estadoAnterior = existente[0] ? existente[0].estado : null;
 
   await pool.query(
     `INSERT INTO estado_habitaciones (numero_habitacion, hotel_id, estado, asignado_a)
-     VALUES (?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE estado = VALUES(estado), asignado_a = VALUES(asignado_a)`,
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (numero_habitacion) DO UPDATE SET
+       estado = EXCLUDED.estado,
+       asignado_a = EXCLUDED.asignado_a,
+       actualizado_en = CURRENT_TIMESTAMP`,
     [numero, req.body.hotel_id || (existente[0] ? existente[0].hotel_id : 1), estado, asignado_a || null]
   );
 
   await pool.query(
-    "INSERT INTO historial_limpieza (numero_habitacion, estado_anterior, estado_nuevo, origen) VALUES (?, ?, ?, 'actualizacion_manual')",
+    "INSERT INTO historial_limpieza (numero_habitacion, estado_anterior, estado_nuevo, origen) VALUES ($1, $2, $3, 'actualizacion_manual')",
     [numero, estadoAnterior, estado]
   );
 
-  const [filas] = await pool.query("SELECT * FROM estado_habitaciones WHERE numero_habitacion = ?", [numero]);
-  res.json(filas[0]);
+  const { rows } = await pool.query("SELECT * FROM estado_habitaciones WHERE numero_habitacion = $1", [numero]);
+  res.json(rows[0]);
 }
 
 /**
- * Genera automáticamente la tarea de limpieza (estado "sucia") tras un
- * checkout. La usa el poller de eventos, no se expone como ruta HTTP propia.
+ * Genera automaticamente la tarea de limpieza (estado "sucia") tras un
+ * checkout. La usa el consumidor de eventos.
  */
 async function generarTareaLimpiezaPorCheckout({ numero_habitacion, hotel_id }) {
-  const [existente] = await pool.query(
-    "SELECT * FROM estado_habitaciones WHERE numero_habitacion = ?",
+  const { rows: existente } = await pool.query(
+    "SELECT * FROM estado_habitaciones WHERE numero_habitacion = $1",
     [numero_habitacion]
   );
   const estadoAnterior = existente[0] ? existente[0].estado : null;
 
   await pool.query(
     `INSERT INTO estado_habitaciones (numero_habitacion, hotel_id, estado)
-     VALUES (?, ?, 'sucia')
-     ON DUPLICATE KEY UPDATE estado = 'sucia'`,
+     VALUES ($1, $2, 'sucia')
+     ON CONFLICT (numero_habitacion) DO UPDATE SET
+       estado = 'sucia',
+       actualizado_en = CURRENT_TIMESTAMP`,
     [numero_habitacion, hotel_id || 1]
   );
 
   await pool.query(
-    "INSERT INTO historial_limpieza (numero_habitacion, estado_anterior, estado_nuevo, origen) VALUES (?, ?, 'sucia', 'evento_async')",
+    "INSERT INTO historial_limpieza (numero_habitacion, estado_anterior, estado_nuevo, origen) VALUES ($1, $2, 'sucia', 'evento_async')",
     [numero_habitacion, estadoAnterior]
   );
 }

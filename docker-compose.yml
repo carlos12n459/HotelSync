@@ -1,27 +1,57 @@
 version: "3.8"
 
-# Infraestructura completa de HotelSync.
+# Infraestructura completa de HotelSync con PostgreSQL, RabbitMQ y Redis.
 # Con Docker Desktop instalado, ejecuta:
 #   docker compose up --build
-# y tendrás todos los microservicios + MySQL funcionando.
+# y tendras todos los microservicios + infraestructura funcionando.
 
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: hotelsync-mysql
+  postgres:
+    image: postgres:15
+    container_name: hotelsync-postgres
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: hotelsync_root
+      POSTGRES_USER: hotelsync_app
+      POSTGRES_PASSWORD: hotelsync_app_pass
+      POSTGRES_DB: postgres
     ports:
-      - "3306:3306"
+      - "5432:5432"
     volumes:
-      - hotelsync_mysql_data:/var/lib/mysql
-      - ./infraestructura/mysql-init:/docker-entrypoint-initdb.d
+      - hotelsync_postgres_data:/var/lib/postgresql/data
+      - ./infraestructura/postgres-init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-photelsync_root"]
+      test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 5s
       timeout: 5s
       retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: hotelsync-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: hotelsync
+      RABBITMQ_DEFAULT_PASS: hotelsync_pass
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: hotelsync-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   servicio-disponibilidad-tarifas:
     build: ./servicio-disponibilidad-tarifas
@@ -31,16 +61,21 @@ services:
       - "3001:3001"
     environment:
       PORT: 3001
-      DB_HOST: mysql
-      DB_PORT: 3306
+      DB_HOST: postgres
+      DB_PORT: 5432
       DB_USER: hotelsync_app
       DB_PASSWORD: hotelsync_app_pass
       DB_NAME: disponibilidad_tarifas_db
+      RABBITMQ_URL: amqp://hotelsync:hotelsync_pass@rabbitmq:5672
+      REDIS_URL: redis://redis:6379
       URL_SERVICIO_RESERVAS: http://servicio-reservas:3002
-      INTERVALO_POLLING_MS: 4000
       URL_SERVICIO_PROPIEDADES: http://servicio-propiedades:3005
     depends_on:
-      mysql:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   servicio-reservas:
@@ -51,16 +86,18 @@ services:
       - "3002:3002"
     environment:
       PORT: 3002
-      DB_HOST: mysql
-      DB_PORT: 3306
+      DB_HOST: postgres
+      DB_PORT: 5432
       DB_USER: hotelsync_app
       DB_PASSWORD: hotelsync_app_pass
       DB_NAME: reservas_db
+      RABBITMQ_URL: amqp://hotelsync:hotelsync_pass@rabbitmq:5672
       URL_SERVICIO_DISPONIBILIDAD: http://servicio-disponibilidad-tarifas:3001
       URL_SERVICIO_PROPIEDADES: http://servicio-propiedades:3005
-      URL_SERVICIO_HUESPEDES: http://servicio-reservas:3002
     depends_on:
-      mysql:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
       servicio-disponibilidad-tarifas:
         condition: service_started
@@ -73,17 +110,18 @@ services:
       - "3003:3003"
     environment:
       PORT: 3003
-      DB_HOST: mysql
-      DB_PORT: 3306
+      DB_HOST: postgres
+      DB_PORT: 5432
       DB_USER: hotelsync_app
       DB_PASSWORD: hotelsync_app_pass
       DB_NAME: recepcion_db
+      RABBITMQ_URL: amqp://hotelsync:hotelsync_pass@rabbitmq:5672
       URL_SERVICIO_RESERVAS: http://servicio-reservas:3002
       URL_SERVICIO_HOUSEKEEPING: http://servicio-housekeeping:3004
-      URL_SERVICIO_FACTURACION: http://servicio-facturacion:3007
-      INTERVALO_POLLING_MS: 4000
     depends_on:
-      mysql:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
       servicio-reservas:
         condition: service_started
@@ -98,15 +136,17 @@ services:
       - "3004:3004"
     environment:
       PORT: 3004
-      DB_HOST: mysql
-      DB_PORT: 3306
+      DB_HOST: postgres
+      DB_PORT: 5432
       DB_USER: hotelsync_app
       DB_PASSWORD: hotelsync_app_pass
       DB_NAME: housekeeping_db
+      RABBITMQ_URL: amqp://hotelsync:hotelsync_pass@rabbitmq:5672
       URL_SERVICIO_RECEPCION: http://servicio-recepcion:3003
-      INTERVALO_POLLING_MS: 4000
     depends_on:
-      mysql:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
   servicio-propiedades:
@@ -117,13 +157,13 @@ services:
       - "3005:3005"
     environment:
       PORT: 3005
-      DB_HOST: mysql
-      DB_PORT: 3306
+      DB_HOST: postgres
+      DB_PORT: 5432
       DB_USER: hotelsync_app
       DB_PASSWORD: hotelsync_app_pass
       DB_NAME: propiedades_db
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
 
   servicio-channel-manager:
@@ -134,17 +174,19 @@ services:
       - "3006:3006"
     environment:
       PORT: 3006
-      DB_HOST: mysql
-      DB_PORT: 3306
+      DB_HOST: postgres
+      DB_PORT: 5432
       DB_USER: hotelsync_app
       DB_PASSWORD: hotelsync_app_pass
       DB_NAME: channel_manager_db
+      RABBITMQ_URL: amqp://hotelsync:hotelsync_pass@rabbitmq:5672
       URL_SERVICIO_RESERVAS: http://servicio-reservas:3002
       URL_SERVICIO_DISPONIBILIDAD: http://servicio-disponibilidad-tarifas:3001
       URL_SERVICIO_PROPIEDADES: http://servicio-propiedades:3005
-      INTERVALO_POLLING_MS: 4000
     depends_on:
-      mysql:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
       servicio-reservas:
         condition: service_started
@@ -159,16 +201,18 @@ services:
       - "3007:3007"
     environment:
       PORT: 3007
-      DB_HOST: mysql
-      DB_PORT: 3306
+      DB_HOST: postgres
+      DB_PORT: 5432
       DB_USER: hotelsync_app
       DB_PASSWORD: hotelsync_app_pass
       DB_NAME: facturacion_db
+      RABBITMQ_URL: amqp://hotelsync:hotelsync_pass@rabbitmq:5672
       URL_SERVICIO_RESERVAS: http://servicio-reservas:3002
       URL_SERVICIO_RECEPCION: http://servicio-recepcion:3003
-      INTERVALO_POLLING_MS: 4000
     depends_on:
-      mysql:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
       servicio-reservas:
         condition: service_started
@@ -183,16 +227,18 @@ services:
       - "3008:3008"
     environment:
       PORT: 3008
-      DB_HOST: mysql
-      DB_PORT: 3306
+      DB_HOST: postgres
+      DB_PORT: 5432
       DB_USER: hotelsync_app
       DB_PASSWORD: hotelsync_app_pass
       DB_NAME: fidelizacion_db
+      RABBITMQ_URL: amqp://hotelsync:hotelsync_pass@rabbitmq:5672
       URL_SERVICIO_RECEPCION: http://servicio-recepcion:3003
       URL_SERVICIO_RESERVAS: http://servicio-reservas:3002
-      INTERVALO_POLLING_MS: 4000
     depends_on:
-      mysql:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
       servicio-recepcion:
         condition: service_started
@@ -205,8 +251,8 @@ services:
       - "3009:3009"
     environment:
       PORT: 3009
-      DB_HOST: mysql
-      DB_PORT: 3306
+      DB_HOST: postgres
+      DB_PORT: 5432
       DB_USER: hotelsync_app
       DB_PASSWORD: hotelsync_app_pass
       DB_NAME: analytics_db
@@ -214,7 +260,7 @@ services:
       URL_SERVICIO_RESERVAS: http://servicio-reservas:3002
       URL_SERVICIO_PROPIEDADES: http://servicio-propiedades:3005
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
       servicio-disponibilidad-tarifas:
         condition: service_started
@@ -252,4 +298,4 @@ services:
       - servicio-analytics
 
 volumes:
-  hotelsync_mysql_data:
+  hotelsync_postgres_data:

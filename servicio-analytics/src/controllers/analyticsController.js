@@ -8,19 +8,19 @@ async function listarKPIs(req, res) {
     const parametros = [];
 
     if (hotel_id) {
-      consulta += " AND hotel_id = ?";
       parametros.push(hotel_id);
+      consulta += ` AND hotel_id = $${parametros.length}`;
     }
 
     if (fecha) {
-      consulta += " AND fecha = ?";
       parametros.push(fecha);
+      consulta += ` AND fecha = $${parametros.length}`;
     }
 
     consulta += " ORDER BY fecha DESC, hotel_id ASC";
 
-    const [filas] = await pool.query(consulta, parametros);
-    res.json(filas);
+    const { rows } = await pool.query(consulta, parametros);
+    res.json(rows);
   } catch (error) {
     res.status(500).json({ error: "Error al listar KPIs", detalle: error.message });
   }
@@ -28,7 +28,7 @@ async function listarKPIs(req, res) {
 
 async function resumenGlobal(req, res) {
   try {
-    const [[resumen]] = await pool.query(
+    const { rows: [resumen] } = await pool.query(
       `SELECT
          COUNT(DISTINCT hotel_id) AS total_hoteles,
          COUNT(*) AS total_registros,
@@ -69,10 +69,10 @@ async function ejecutarETLManual(req, res) {
 
 async function listarLogETL(req, res) {
   try {
-    const [filas] = await pool.query(
+    const { rows } = await pool.query(
       "SELECT * FROM etl_log ORDER BY ejecutado_en DESC LIMIT 50"
     );
-    res.json(filas);
+    res.json(rows);
   } catch (error) {
     res.status(500).json({ error: "Error al listar log ETL", detalle: error.message });
   }

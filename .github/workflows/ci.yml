@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install dependencies and run tests
+        run: |
+          for dir in api-gateway servicio-*; do
+            echo "==> $dir"
+            cd "$dir"
+            npm install
+            npm test
+            cd ..
+          done
+        shell: bash
+
+      - name: Check JavaScript syntax
+        run: |
+          find . -name node_modules -prune -o -name "*.js" -print | while read file; do
+            node --check "$file"
+          done
+        shell: bash

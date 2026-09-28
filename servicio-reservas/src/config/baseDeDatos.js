@@ -1,17 +1,16 @@
-const mysql = require("mysql2/promise");
+const { Pool } = require("pg");
 
 // Base de datos propia de este microservicio (reservas_db). No se comparte
-// con el servicio de disponibilidad y tarifas: si este último necesita
-// datos de una reserva lo hace a través de su API, nunca leyendo esta
+// con el servicio de disponibilidad y tarifas: si este ultimo necesita
+// datos de una reserva lo hace a traves de su API, nunca leyendo esta
 // base de datos directamente.
-const pool = mysql.createPool({
+const pool = new Pool({
   host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
+  port: process.env.DB_PORT || 5432,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: 10
+  max: 10
 });
 
 module.exports = pool;

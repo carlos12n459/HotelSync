@@ -3,7 +3,8 @@ const express = require("express");
 const cors = require("cors");
 
 const channelManagerRoutes = require("./routes/channelManagerRoutes");
-const { iniciarPollingDisponibilidad } = require("./pollers/disponibilidadPoller");
+const { connect: connectRabbit, consume } = require("./eventos/rabbitmq");
+const { procesarAvailabilityUpdated } = require("./controllers/channelManagerController");
 
 const app = express();
 app.use(cors());
@@ -14,7 +15,14 @@ app.use("/api", channelManagerRoutes);
 
 const PUERTO = process.env.PORT || 3006;
 
-app.listen(PUERTO, () => {
-  console.log(`[channel-manager] Escuchando en http://localhost:${PUERTO}`);
-  iniciarPollingDisponibilidad();
-});
+connectRabbit()
+  .then(() => {
+    consume("availability.updated", procesarAvailabilityUpdated);
+    app.listen(PUERTO, () => {
+      console.log(`[channel-manager] Escuchando en http://localhost:${PUERTO}`);
+    });
+  })
+  .catch((err) => {
+    console.error("[channel-manager] Error al iniciar:", err.message);
+    process.exit(1);
+  });

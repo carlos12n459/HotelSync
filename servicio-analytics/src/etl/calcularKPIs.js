@@ -32,15 +32,16 @@ async function guardarKPI(kpi) {
     `INSERT INTO kpis_diarios
       (hotel_id, fecha, habitaciones_disponibles, habitaciones_ocupadas, habitaciones_bloqueadas,
        occupancy, adr, revpar, total_revenue)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE
-       habitaciones_disponibles = VALUES(habitaciones_disponibles),
-       habitaciones_ocupadas = VALUES(habitaciones_ocupadas),
-       habitaciones_bloqueadas = VALUES(habitaciones_bloqueadas),
-       occupancy = VALUES(occupancy),
-       adr = VALUES(adr),
-       revpar = VALUES(revpar),
-       total_revenue = VALUES(total_revenue)`,
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+     ON CONFLICT (hotel_id, fecha) DO UPDATE SET
+       habitaciones_disponibles = EXCLUDED.habitaciones_disponibles,
+       habitaciones_ocupadas = EXCLUDED.habitaciones_ocupadas,
+       habitaciones_bloqueadas = EXCLUDED.habitaciones_bloqueadas,
+       occupancy = EXCLUDED.occupancy,
+       adr = EXCLUDED.adr,
+       revpar = EXCLUDED.revpar,
+       total_revenue = EXCLUDED.total_revenue,
+       actualizado_en = CURRENT_TIMESTAMP`,
     [
       hotel_id,
       fecha,
@@ -57,7 +58,7 @@ async function guardarKPI(kpi) {
 
 async function registrarLogETL(registros, estado, detalle) {
   await pool.query(
-    "INSERT INTO etl_log (registros, estado, detalle) VALUES (?, ?, ?)",
+    "INSERT INTO etl_log (registros, estado, detalle) VALUES ($1, $2, $3)",
     [registros, estado, detalle]
   );
 }
