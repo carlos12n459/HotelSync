@@ -3,240 +3,768 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>HotelSync — Demo completa de microservicios</title>
+<title>HotelSync — Plataforma de Gestión Hotelera Multi-Propiedad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  body { font-family: system-ui, sans-serif; max-width: 1100px; margin: 40px auto; padding: 0 16px; color: #1a1a1a; }
-  h1 { font-size: 1.5rem; }
-  h2 { font-size: 1.1rem; margin-top: 0; }
-  section { border: 1px solid #ddd; border-radius: 10px; padding: 16px; margin-bottom: 20px; }
-  label { display: block; margin-top: 8px; font-size: 0.85rem; color: #555; }
-  input, select { width: 100%; padding: 6px 8px; box-sizing: border-box; }
-  button { margin-top: 12px; padding: 8px 16px; cursor: pointer; }
-  pre { background: #f5f5f5; padding: 10px; border-radius: 6px; overflow-x: auto; font-size: 0.8rem; }
-  .fila { display: flex; gap: 12px; flex-wrap: wrap; }
-  .fila > div { flex: 1; min-width: 140px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
-  .nav { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
-  .nav button { margin-top: 0; }
+  :root{
+    --sky-50:#f0f9ff;
+    --sky-100:#e0f2fe;
+    --sky-200:#bae6fd;
+    --sky-300:#7dd3fc;
+    --sky-400:#38bdf8;
+    --sky-500:#0ea5e9;
+    --sky-600:#0284c7;
+    --sky-700:#0369a1;
+    --sky-800:#075985;
+    --sky-900:#0c4a6e;
+    --slate-50:#f8fafc;
+    --slate-100:#f1f5f9;
+    --slate-200:#e2e8f0;
+    --slate-300:#cbd5e1;
+    --slate-400:#94a3b8;
+    --slate-500:#64748b;
+    --slate-600:#475569;
+    --slate-700:#334155;
+    --slate-800:#1e293b;
+    --slate-900:#0f172a;
+    --white:#ffffff;
+    --shadow-sm:0 1px 2px 0 rgb(15 23 42 / 0.05);
+    --shadow:0 4px 6px -1px rgb(15 23 42 / 0.08), 0 2px 4px -2px rgb(15 23 42 / 0.05);
+    --shadow-lg:0 10px 15px -3px rgb(15 23 42 / 0.08), 0 4px 6px -4px rgb(15 23 42 / 0.05);
+    --shadow-xl:0 20px 25px -5px rgb(15 23 42 / 0.08), 0 8px 10px -6px rgb(15 23 42 / 0.05);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--sky-50);
+    color:var(--slate-800);
+    font-family:'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+  }
+  h1,h2,h3,h4{margin:0;line-height:1.2;}
+  button{font-family:inherit;cursor:pointer;}
+  a{color:inherit;text-decoration:none;}
+
+  /* Topbar */
+  .topbar{
+    position:sticky;top:0;z-index:40;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 28px;
+    background:linear-gradient(90deg, var(--sky-900), var(--sky-800));
+    color:#fff;
+    box-shadow:var(--shadow);
+  }
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-icon{
+    width:42px;height:42px;border-radius:10px;
+    background:linear-gradient(135deg, var(--sky-400), var(--sky-600));
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 4px 12px rgb(14 165 233 / 0.35);
+  }
+  .brand-icon svg{width:24px;height:24px;color:#fff;}
+  .brand-name{font-weight:800;font-size:1.05rem;letter-spacing:-0.01em;}
+  .brand-sub{font-size:0.7rem;color:var(--sky-200);letter-spacing:0.04em;text-transform:uppercase;}
+  .topbar-actions{display:flex;align-items:center;gap:14px;}
+  .status-pill{
+    display:flex;align-items:center;gap:8px;
+    background:rgba(255,255,255,0.12);
+    padding:6px 14px;border-radius:30px;
+    font-size:0.82rem;font-weight:600;
+  }
+  .status-dot{width:8px;height:8px;border-radius:50%;background:var(--sky-300);}
+  .status-dot.ok{background:#34d399;box-shadow:0 0 8px #34d399;}
+  .status-dot.error{background:#f87171;box-shadow:0 0 8px #f87171;}
+
+  /* Hero */
+  .hero{
+    position:relative;
+    background:
+      radial-gradient(ellipse at 80% 10%, rgba(56,189,248,0.35), transparent 55%),
+      linear-gradient(160deg, var(--sky-800) 0%, var(--sky-900) 70%);
+    color:#fff;
+    padding:72px 28px 86px;
+    overflow:hidden;
+  }
+  .hero::before{
+    content:"";position:absolute;inset:0;
+    background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    opacity:0.6;
+  }
+  .hero-inner{max-width:1080px;margin:0 auto;position:relative;z-index:1;}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    background:rgba(255,255,255,0.12);
+    border:1px solid rgba(255,255,255,0.18);
+    padding:6px 14px;border-radius:30px;
+    font-size:0.78rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;
+    color:var(--sky-100);
+    margin-bottom:18px;
+  }
+  .hero h1{
+    font-size:clamp(2rem,5vw,3.4rem);
+    font-weight:800;
+    letter-spacing:-0.02em;
+    max-width:22ch;
+  }
+  .hero h1 em{font-style:normal;color:var(--sky-300);}
+  .hero p{
+    margin-top:18px;font-size:1.05rem;line-height:1.7;
+    color:var(--sky-100);max-width:58ch;
+  }
+  .hero-actions{display:flex;gap:14px;margin-top:32px;flex-wrap:wrap;}
+  .btn-primary{
+    background:var(--sky-400);color:var(--sky-900);border:none;
+    padding:13px 24px;border-radius:10px;font-weight:700;font-size:0.95rem;
+    box-shadow:0 8px 20px rgba(14,165,233,0.45);
+    transition:all 0.2s ease;
+  }
+  .btn-primary:hover{background:var(--sky-300);transform:translateY(-2px);}
+  .btn-ghost{
+    background:rgba(255,255,255,0.08);color:#fff;border:1.5px solid rgba(255,255,255,0.35);
+    padding:12px 22px;border-radius:10px;font-weight:600;font-size:0.95rem;
+    transition:all 0.2s ease;
+  }
+  .btn-ghost:hover{background:rgba(255,255,255,0.15);}
+
+  /* Main */
+  .main{max-width:1120px;margin:0 auto;padding:48px 24px 80px;}
+
+  /* Config bar */
+  .config-bar{
+    background:var(--white);border:1px solid var(--slate-200);border-radius:14px;
+    padding:18px 22px;margin-bottom:32px;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    box-shadow:var(--shadow);
+  }
+  .config-bar label{font-size:0.82rem;font-weight:700;color:var(--slate-500);text-transform:uppercase;letter-spacing:0.03em;}
+  .config-bar input{
+    border:1.5px solid var(--slate-200);border-radius:8px;padding:9px 12px;font-size:0.92rem;
+    min-width:260px;color:var(--slate-700);
+  }
+  .config-bar input:focus{outline:none;border-color:var(--sky-500);box-shadow:0 0 0 3px rgba(14,165,233,0.12);}
+
+  /* Section */
+  .section{
+    background:var(--white);border:1px solid var(--slate-200);border-radius:18px;
+    padding:28px;margin-bottom:28px;box-shadow:var(--shadow);
+  }
+  .section-head{display:flex;align-items:center;gap:12px;margin-bottom:22px;}
+  .section-icon{
+    width:42px;height:42px;border-radius:10px;
+    background:linear-gradient(135deg, var(--sky-100), var(--sky-200));
+    display:flex;align-items:center;justify-content:center;
+  }
+  .section-icon svg{width:22px;height:22px;color:var(--sky-700);}
+  .section-title h2{font-size:1.15rem;font-weight:700;color:var(--slate-800);}
+  .section-title p{font-size:0.85rem;color:var(--slate-500);margin-top:2px;}
+
+  /* Grid */
+  .grid-2{display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:18px;}
+  .grid-3{display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:18px;}
+  .grid-4{display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:14px;}
+
+  /* Field */
+  .field{display:flex;flex-direction:column;gap:6px;}
+  .field label{font-size:0.78rem;font-weight:700;color:var(--slate-500);text-transform:uppercase;letter-spacing:0.03em;}
+  .field input,.field select{
+    border:1.5px solid var(--slate-200);border-radius:10px;padding:10px 12px;font-size:0.92rem;
+    color:var(--slate-700);background:#fff;
+  }
+  .field input:focus,.field select:focus{outline:none;border-color:var(--sky-500);box-shadow:0 0 0 3px rgba(14,165,233,0.12);}
+
+  /* Buttons */
+  .btn{
+    background:var(--sky-600);color:#fff;border:none;border-radius:10px;
+    padding:10px 18px;font-weight:600;font-size:0.9rem;
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    transition:all 0.18s ease;
+  }
+  .btn:hover{background:var(--sky-700);transform:translateY(-1px);}
+  .btn:active{transform:scale(0.98);}
+  .btn:disabled{opacity:0.6;cursor:not-allowed;transform:none;}
+  .btn-secondary{background:var(--slate-100);color:var(--slate-700);border:1.5px solid var(--slate-200);}
+  .btn-secondary:hover{background:var(--slate-200);}
+  .btn-success{background:#10b981;}
+  .btn-success:hover{background:#059669;}
+  .btn-danger{background:#ef4444;}
+  .btn-danger:hover{background:#dc2626;}
+  .btn-group{display:flex;gap:10px;flex-wrap:wrap;}
+
+  /* Result box */
+  .result{
+    margin-top:18px;background:var(--slate-50);border:1.5px solid var(--slate-200);
+    border-radius:12px;padding:16px;font-size:0.85rem;color:var(--slate-700);
+    min-height:60px;max-height:320px;overflow:auto;white-space:pre-wrap;word-break:break-word;
+    font-family:'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  }
+  .result:empty::before{content:"Resultado aparecerá aquí";color:var(--slate-400);}
+  .result.error{background:#fef2f2;border-color:#fecaca;color:#991b1b;}
+  .result.success{background:#f0fdf4;border-color:#bbf7d0;color:#166534;}
+  .result.loading{background:var(--sky-50);border-color:var(--sky-200);color:var(--sky-700);}
+
+  /* Toast */
+  .toast{
+    position:fixed;bottom:24px;right:24px;z-index:100;
+    background:var(--slate-800);color:#fff;padding:14px 20px;border-radius:12px;
+    box-shadow:var(--shadow-xl);display:flex;align-items:center;gap:12px;
+    transform:translateY(150%);opacity:0;transition:all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    max-width:420px;
+  }
+  .toast.show{transform:translateY(0);opacity:1;}
+  .toast.success{background:#059669;}
+  .toast.error{background:#dc2626;}
+  .toast svg{width:20px;height:20px;flex-shrink:0;}
+
+  /* Footer */
+  footer{
+    background:var(--slate-900);color:var(--slate-300);padding:40px 28px;text-align:center;font-size:0.85rem;
+  }
+  footer .fname{font-weight:700;color:#fff;margin-bottom:8px;}
+
+  @media(max-width:760px){
+    .topbar{padding:12px 18px;}
+    .hero{padding:48px 20px 60px;}
+    .main{padding:32px 16px 60px;}
+    .section{padding:20px;}
+    .config-bar{flex-direction:column;align-items:stretch;}
+    .config-bar input{min-width:unset;width:100%;}
+  }
 </style>
 </head>
 <body>
-  <h1>HotelSync — Demo completa de microservicios</h1>
-  <p>Base URL del API Gateway: <code id="base-url">http://localhost:3010</code></p>
-  <div class="nav">
-    <button onclick="cambiarUrl('http://localhost:3010')">Local (Gateway)</button>
-    <button onclick="cambiarUrl('http://localhost:3001')">Disponibilidad</button>
-    <button onclick="cambiarUrl('http://localhost:3002')">Reservas</button>
-    <button onclick="cambiarUrl('http://localhost:3003')">Recepción</button>
-    <button onclick="cambiarUrl('http://localhost:3004')">Housekeeping</button>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+    </div>
+    <div>
+      <div class="brand-name">HotelSync</div>
+      <div class="brand-sub">Plataforma de Gestión Hotelera Multi-Propiedad</div>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <div class="status-pill" id="statusPill">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Verificando conexión...</span>
+    </div>
+  </div>
+</div>
+
+<section class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">Demo interactiva</div>
+    <h1>Gestión hotelera <em>unificada y en tiempo real</em></h1>
+    <p>Prueba el flujo completo de la cadena hotelera: disponibilidad, reservas, recepción, housekeeping, facturación, fidelización y analytics.</p>
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="document.getElementById('demo').scrollIntoView()">Iniciar demo</button>
+      <button class="btn-ghost" onclick="probarFlujoCompleto()">Ejecutar flujo automático</button>
+    </div>
+  </div>
+</section>
+
+<main class="main" id="demo">
+
+  <div class="config-bar">
+    <div class="field" style="flex:1;min-width:260px;">
+      <label>URL del API Gateway</label>
+      <input type="text" id="baseUrlInput" value="http://localhost:3010" onchange="actualizarBaseUrl()" />
+    </div>
+    <div class="btn-group" style="align-items:flex-end;">
+      <button class="btn btn-secondary" onclick="verificarConexion()">Verificar conexión</button>
+    </div>
   </div>
 
-  <div class="grid">
-    <section>
-      <h2>1. Catálogo de propiedades</h2>
-      <button onclick="listarHoteles()">Listar hoteles</button>
-      <button onclick="listarTiposHabitacion()">Tipos habitación</button>
-      <pre id="r-propiedades"></pre>
-    </section>
-
-    <section>
-      <h2>2. Disponibilidad</h2>
-      <div class="fila">
-        <div><label>Tipo habitación id</label><input id="d-tipo" value="1" /></div>
-        <div><label>Check-in</label><input id="d-in" type="date" /></div>
-        <div><label>Check-out</label><input id="d-out" type="date" /></div>
+  <!-- Propiedades -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
       </div>
-      <button onclick="consultarDisponibilidad()">Consultar</button>
-      <pre id="r-disponibilidad"></pre>
-    </section>
-
-    <section>
-      <h2>3. Crear reserva</h2>
-      <div class="fila">
-        <div><label>Nombre</label><input id="r-nombre" value="María Pérez" /></div>
-        <div><label>Email</label><input id="r-email" value="maria@example.com" /></div>
+      <div class="section-title">
+        <h2>1. Catálogo de propiedades</h2>
+        <p>Hoteles, tipos de habitación y habitaciones físicas</p>
       </div>
-      <div class="fila">
-        <div><label>Hotel id</label><input id="r-hotel" value="1" /></div>
-        <div><label>Tipo habitación id</label><input id="r-tipo-hab" value="1" /></div>
-        <div><label>Monto total</label><input id="r-monto" value="360000" /></div>
-      </div>
-      <div class="fila">
-        <div><label>Check-in</label><input id="r-in" type="date" /></div>
-        <div><label>Check-out</label><input id="r-out" type="date" /></div>
-      </div>
-      <button onclick="crearReserva()">Crear reserva</button>
-      <pre id="r-reserva"></pre>
-    </section>
-
-    <section>
-      <h2>4. Recepción</h2>
-      <div class="fila">
-        <div><label>Hotel id</label><input id="rec-hotel" value="1" /></div>
-        <div><label>Fecha</label><input id="rec-fecha" type="date" /></div>
-      </div>
-      <button onclick="iniciarTurno()">Iniciar turno</button>
-      <button onclick="listarLlegadas()">Llegadas</button>
-      <hr />
-      <div class="fila">
-        <div><label>Reserva id</label><input id="rec-reserva-id" value="1" /></div>
-        <div><label>Habitación</label><input id="rec-habitacion" value="101" /></div>
-      </div>
-      <button onclick="checkin()">Check-in</button>
-      <button onclick="checkout()">Checkout</button>
-      <pre id="r-recepcion"></pre>
-    </section>
-
-    <section>
-      <h2>5. Housekeeping</h2>
-      <button onclick="listarHabitaciones()">Listar habitaciones</button>
-      <div class="fila">
-        <div><label>Habitación</label><input id="hk-habitacion" value="101" /></div>
-        <div><label>Estado</label>
-          <select id="hk-estado">
-            <option value="sucia">sucia</option>
-            <option value="en_limpieza">en_limpieza</option>
-            <option value="lista" selected>lista</option>
-            <option value="mantenimiento">mantenimiento</option>
-          </select>
-        </div>
-      </div>
-      <button onclick="consultarEstadoHabitacion()">Consultar estado</button>
-      <button onclick="actualizarEstadoHabitacion()">Actualizar estado</button>
-      <pre id="r-housekeeping"></pre>
-    </section>
-
-    <section>
-      <h2>6. Facturación</h2>
-      <button onclick="listarFolios()">Listar folios</button>
-      <button onclick="listarFacturas()">Listar facturas</button>
-      <pre id="r-facturacion"></pre>
-    </section>
-
-    <section>
-      <h2>7. Fidelización</h2>
-      <div class="fila">
-        <div><label>Guest id</label><input id="fid-guest" value="1" /></div>
-      </div>
-      <button onclick="consultarCuenta()">Consultar cuenta</button>
-      <button onclick="listarTransacciones()">Transacciones</button>
-      <pre id="r-fidelizacion"></pre>
-    </section>
-
-    <section>
-      <h2>8. Analytics</h2>
-      <button onclick="ejecutarETL()">Ejecutar ETL</button>
-      <button onclick="listarKPIs()">Listar KPIs</button>
-      <pre id="r-analytics"></pre>
-    </section>
+    </div>
+    <div class="btn-group">
+      <button class="btn" onclick="listarHoteles()">Listar hoteles</button>
+      <button class="btn btn-secondary" onclick="listarTiposHabitacion()">Tipos de habitación</button>
+      <button class="btn btn-secondary" onclick="listarHabitacionesFisicas()">Habitaciones físicas</button>
+    </div>
+    <pre class="result" id="r-propiedades"></pre>
   </div>
 
-  <script>
-    let BASE = "http://localhost:3010";
+  <!-- Disponibilidad -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+      </div>
+      <div class="section-title">
+        <h2>2. Disponibilidad y tarifas</h2>
+        <p>Consulta inventario en tiempo real con caché Redis</p>
+      </div>
+    </div>
+    <div class="grid-4">
+      <div class="field"><label>Tipo habitación</label><input type="number" id="d-tipo" value="1" /></div>
+      <div class="field"><label>Check-in</label><input type="date" id="d-in" /></div>
+      <div class="field"><label>Check-out</label><input type="date" id="d-out" /></div>
+      <div class="field"><label>Hotel</label><input type="number" id="d-hotel" value="1" /></div>
+    </div>
+    <div class="btn-group" style="margin-top:14px;">
+      <button class="btn" onclick="consultarDisponibilidad()">Consultar disponibilidad</button>
+    </div>
+    <pre class="result" id="r-disponibilidad"></pre>
+  </div>
 
-    function cambiarUrl(url) {
-      BASE = url;
-      document.getElementById("base-url").textContent = BASE;
+  <!-- Reservas -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+      </div>
+      <div class="section-title">
+        <h2>3. Reservas</h2>
+        <p>Ciclo de vida de la reserva y publicación de eventos</p>
+      </div>
+    </div>
+    <div class="grid-3">
+      <div class="field"><label>Nombre huésped</label><input type="text" id="r-nombre" value="María Pérez" /></div>
+      <div class="field"><label>Email</label><input type="email" id="r-email" value="maria@example.com" /></div>
+      <div class="field"><label>Hotel id</label><input type="number" id="r-hotel" value="1" /></div>
+      <div class="field"><label>Tipo habitación</label><input type="number" id="r-tipo-hab" value="1" /></div>
+      <div class="field"><label>Check-in</label><input type="date" id="r-in" /></div>
+      <div class="field"><label>Check-out</label><input type="date" id="r-out" /></div>
+      <div class="field"><label>Monto total</label><input type="number" id="r-monto" value="360000" /></div>
+      <div class="field"><label>Canal</label>
+        <select id="r-canal">
+          <option value="directo">Directo</option>
+          <option value="booking">Booking</option>
+          <option value="expedia">Expedia</option>
+          <option value="airbnb">Airbnb</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-group" style="margin-top:14px;">
+      <button class="btn btn-success" onclick="crearReserva()">Crear reserva</button>
+      <button class="btn btn-secondary" onclick="listarReservas()">Listar reservas</button>
+    </div>
+    <pre class="result" id="r-reservas"></pre>
+  </div>
+
+  <!-- Channel Manager -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+      </div>
+      <div class="section-title">
+        <h2>4. Channel Manager (OTA)</h2>
+        <p>Simula reservas entrantes desde Booking, Expedia o Airbnb</p>
+      </div>
+    </div>
+    <div class="grid-3">
+      <div class="field"><label>External id</label><input type="text" id="cm-external" value="BOOK-123" /></div>
+      <div class="field"><label>Nombre</label><input type="text" id="cm-nombre" value="Juan Viajero" /></div>
+      <div class="field"><label>Email</label><input type="email" id="cm-email" value="juan@example.com" /></div>
+      <div class="field"><label>Hotel</label><input type="number" id="cm-hotel" value="1" /></div>
+      <div class="field"><label>Tipo habitación</label><input type="number" id="cm-tipo" value="1" /></div>
+      <div class="field"><label>Monto</label><input type="number" id="cm-monto" value="400000" /></div>
+      <div class="field"><label>Check-in</label><input type="date" id="cm-in" /></div>
+      <div class="field"><label>Check-out</label><input type="date" id="cm-out" /></div>
+      <div class="field"><label>Canal</label>
+        <select id="cm-canal">
+          <option value="booking">Booking</option>
+          <option value="expedia">Expedia</option>
+          <option value="airbnb">Airbnb</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-group" style="margin-top:14px;">
+      <button class="btn" onclick="simularWebhookOTA()">Enviar webhook OTA</button>
+    </div>
+    <pre class="result" id="r-channel"></pre>
+  </div>
+
+  <!-- Recepción -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+      </div>
+      <div class="section-title">
+        <h2>5. Recepción (Front Desk)</h2>
+        <p>Check-in, check-out y asignación de habitaciones</p>
+      </div>
+    </div>
+    <div class="grid-4">
+      <div class="field"><label>Hotel id</label><input type="number" id="rec-hotel" value="1" /></div>
+      <div class="field"><label>Fecha</label><input type="date" id="rec-fecha" /></div>
+      <div class="field"><label>Reserva id</label><input type="number" id="rec-reserva-id" value="1" /></div>
+      <div class="field"><label>Habitación</label><input type="text" id="rec-habitacion" value="101" /></div>
+    </div>
+    <div class="btn-group" style="margin-top:14px;">
+      <button class="btn" onclick="iniciarTurno()">Iniciar turno</button>
+      <button class="btn btn-secondary" onclick="listarLlegadas()">Llegadas</button>
+      <button class="btn btn-success" onclick="checkin()">Check-in</button>
+      <button class="btn btn-danger" onclick="checkout()">Checkout</button>
+    </div>
+    <pre class="result" id="r-recepcion"></pre>
+  </div>
+
+  <!-- Housekeeping -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+      </div>
+      <div class="section-title">
+        <h2>6. Housekeeping</h2>
+        <p>Estado de limpieza de habitaciones físicas</p>
+      </div>
+    </div>
+    <div class="grid-3">
+      <div class="field"><label>Habitación</label><input type="text" id="hk-habitacion" value="101" /></div>
+      <div class="field"><label>Estado</label>
+        <select id="hk-estado">
+          <option value="sucia">Sucia</option>
+          <option value="en_limpieza">En limpieza</option>
+          <option value="lista" selected>Lista</option>
+          <option value="mantenimiento">Mantenimiento</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-group" style="margin-top:14px;">
+      <button class="btn" onclick="consultarEstadoHabitacion()">Consultar estado</button>
+      <button class="btn btn-secondary" onclick="listarHabitaciones()">Listar habitaciones</button>
+      <button class="btn btn-success" onclick="actualizarEstadoHabitacion()">Actualizar estado</button>
+    </div>
+    <pre class="result" id="r-housekeeping"></pre>
+  </div>
+
+  <!-- Facturación -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+      </div>
+      <div class="section-title">
+        <h2>7. Facturación</h2>
+        <p>Folios, cargos y facturas generadas automáticamente</p>
+      </div>
+    </div>
+    <div class="btn-group">
+      <button class="btn" onclick="listarFolios()">Listar folios</button>
+      <button class="btn btn-secondary" onclick="listarFacturas()">Listar facturas</button>
+    </div>
+    <pre class="result" id="r-facturacion"></pre>
+  </div>
+
+  <!-- Fidelización -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+      </div>
+      <div class="section-title">
+        <h2>8. Fidelización</h2>
+        <p>Puntos y niveles de membresía por huésped</p>
+      </div>
+    </div>
+    <div class="grid-3">
+      <div class="field"><label>Guest id</label><input type="number" id="fid-guest" value="1" /></div>
+    </div>
+    <div class="btn-group" style="margin-top:14px;">
+      <button class="btn" onclick="consultarCuenta()">Consultar cuenta</button>
+      <button class="btn btn-secondary" onclick="listarTransacciones()">Transacciones</button>
+    </div>
+    <pre class="result" id="r-fidelizacion"></pre>
+  </div>
+
+  <!-- Analytics -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+      </div>
+      <div class="section-title">
+        <h2>9. Analytics</h2>
+        <p>KPIs de revenue management: ocupación, ADR, RevPAR</p>
+      </div>
+    </div>
+    <div class="btn-group">
+      <button class="btn" onclick="ejecutarETL()">Ejecutar ETL</button>
+      <button class="btn btn-secondary" onclick="listarKPIs()">Listar KPIs</button>
+    </div>
+    <pre class="result" id="r-analytics"></pre>
+  </div>
+
+</main>
+
+<footer>
+  <div class="fname">HotelSync — Proyecto académico de microservicios</div>
+  <p>Sebastián Ortiz López, Carlos Rodríguez, Jesús Fuentes, Yesid Anicharico</p>
+</footer>
+
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+  <span id="toastMsg">Mensaje</span>
+</div>
+
+<script>
+  let BASE = "http://localhost:3010";
+
+  function actualizarBaseUrl(){
+    BASE = document.getElementById("baseUrlInput").value.replace(/\/$/, "");
+    verificarConexion();
+  }
+
+  function set(id, data, type=""){
+    const el = document.getElementById(id);
+    el.className = "result " + type;
+    if (data === undefined || data === null) {
+      el.textContent = "Sin respuesta";
+      return;
     }
+    if (typeof data === "string") el.textContent = data;
+    else el.textContent = JSON.stringify(data, null, 2);
+  }
 
-    async function get(ruta) {
-      const resp = await fetch(`${BASE}${ruta}`);
-      return resp.json();
+  function showToast(msg, type=""){
+    const toast = document.getElementById("toast");
+    document.getElementById("toastMsg").textContent = msg;
+    toast.className = "toast " + type + " show";
+    setTimeout(() => toast.classList.remove("show"), 3200);
+  }
+
+  function setStatus(ok, text){
+    document.getElementById("statusDot").className = "status-dot " + (ok ? "ok" : "error");
+    document.getElementById("statusText").textContent = text;
+  }
+
+  async function request(id, promise){
+    set(id, "Cargando...", "loading");
+    try{
+      const resp = await promise;
+      if (!resp.ok) {
+        const txt = await resp.text();
+        let err = txt;
+        try { err = JSON.stringify(JSON.parse(txt), null, 2); } catch(e){}
+        throw new Error(err || `Error HTTP ${resp.status}`);
+      }
+      const text = await resp.text();
+      if (!text) return null;
+      try { return JSON.parse(text); } catch(e){ return text; }
+    }catch(err){
+      throw err;
     }
+  }
 
-    async function post(ruta, body) {
-      const opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
-      const resp = await fetch(`${BASE}${ruta}`, opts);
-      return resp.json();
+  async function get(ruta){ return request("_", fetch(`${BASE}${ruta}`)); }
+  async function post(ruta, body){
+    return request("_", fetch(`${BASE}${ruta}`, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(body)
+    }));
+  }
+  async function patch(ruta, body){
+    return request("_", fetch(`${BASE}${ruta}`, {
+      method: "PATCH",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(body)
+    }));
+  }
+
+  async function verificarConexion(){
+    setStatus(false, "Verificando...");
+    try{
+      const data = await get("/propiedades/hoteles");
+      if (Array.isArray(data)) setStatus(true, "Conectado al API Gateway");
+      else setStatus(true, "Gateway responde");
+      showToast("Conexión exitosa con el API Gateway", "success");
+    }catch(err){
+      setStatus(false, "Sin conexión");
+      showToast("No se pudo conectar: " + err.message, "error");
     }
+  }
 
-    async function patch(ruta) {
-      const resp = await fetch(`${BASE}${ruta}`, { method: "PATCH" });
-      return resp.json();
-    }
+  // Fechas por defecto
+  function setDefaultDates(){
+    const hoy = new Date();
+    const manana = new Date(hoy); manana.setDate(manana.getDate() + 1);
+    const pasado = new Date(hoy); pasado.setDate(pasado.getDate() + 3);
+    const fmt = d => d.toISOString().split("T")[0];
+    ["d-in","r-in","cm-in"].forEach(id => document.getElementById(id).value = fmt(manana));
+    ["d-out","r-out","cm-out"].forEach(id => document.getElementById(id).value = fmt(pasado));
+    document.getElementById("rec-fecha").value = fmt(manana);
+  }
 
-    function set(id, data) {
-      document.getElementById(id).textContent = JSON.stringify(data, null, 2);
-    }
+  // Propiedades
+  async function listarHoteles(){
+    try{ set("r-propiedades", await get("/propiedades/hoteles"), "success"); }
+    catch(e){ set("r-propiedades", e.message, "error"); }
+  }
+  async function listarTiposHabitacion(){
+    try{ set("r-propiedades", await get("/propiedades/hoteles/1/tipos-habitacion"), "success"); }
+    catch(e){ set("r-propiedades", e.message, "error"); }
+  }
+  async function listarHabitacionesFisicas(){
+    try{ set("r-propiedades", await get("/propiedades/hoteles/1/habitaciones"), "success"); }
+    catch(e){ set("r-propiedades", e.message, "error"); }
+  }
 
-    async function listarHoteles() { set("r-propiedades", await get("/propiedades/hoteles")); }
-    async function listarTiposHabitacion() { set("r-propiedades", await get("/propiedades/hoteles/1/tipos-habitacion")); }
+  // Disponibilidad
+  async function consultarDisponibilidad(){
+    const tipo = document.getElementById("d-tipo").value;
+    const checkin = document.getElementById("d-in").value;
+    const checkout = document.getElementById("d-out").value;
+    if(!checkin || !checkout){ showToast("Selecciona fechas", "error"); return; }
+    try{
+      set("r-disponibilidad", await get(`/disponibilidad/disponibilidad?tipo_habitacion_id=${tipo}&checkin=${checkin}&checkout=${checkout}`), "success");
+    }catch(e){ set("r-disponibilidad", e.message, "error"); }
+  }
 
-    async function consultarDisponibilidad() {
-      const tipo = document.getElementById("d-tipo").value;
-      const checkin = document.getElementById("d-in").value;
-      const checkout = document.getElementById("d-out").value;
-      set("r-disponibilidad", await get(`/disponibilidad/disponibilidad?tipo_habitacion_id=${tipo}&checkin=${checkin}&checkout=${checkout}`));
-    }
+  // Reservas
+  async function crearReserva(){
+    const body = {
+      nombre_huesped: document.getElementById("r-nombre").value,
+      email_huesped: document.getElementById("r-email").value,
+      hotel_id: Number(document.getElementById("r-hotel").value),
+      tipo_habitacion_id: Number(document.getElementById("r-tipo-hab").value),
+      fecha_checkin: document.getElementById("r-in").value,
+      fecha_checkout: document.getElementById("r-out").value,
+      monto_total: Number(document.getElementById("r-monto").value),
+      canal: document.getElementById("r-canal").value
+    };
+    try{ set("r-reservas", await post("/reservas/reservas", body), "success"); }
+    catch(e){ set("r-reservas", e.message, "error"); }
+  }
+  async function listarReservas(){
+    try{ set("r-reservas", await get("/reservas/reservas"), "success"); }
+    catch(e){ set("r-reservas", e.message, "error"); }
+  }
 
-    async function crearReserva() {
-      const body = {
-        nombre_huesped: document.getElementById("r-nombre").value,
-        email_huesped: document.getElementById("r-email").value,
-        hotel_id: Number(document.getElementById("r-hotel").value),
-        tipo_habitacion_id: Number(document.getElementById("r-tipo-hab").value),
-        fecha_checkin: document.getElementById("r-in").value,
-        fecha_checkout: document.getElementById("r-out").value,
-        monto_total: Number(document.getElementById("r-monto").value)
-      };
-      set("r-reserva", await post("/reservas/reservas", body));
-    }
+  // Channel Manager
+  async function simularWebhookOTA(){
+    const body = {
+      external_id: document.getElementById("cm-external").value,
+      nombre_huesped: document.getElementById("cm-nombre").value,
+      email_huesped: document.getElementById("cm-email").value,
+      hotel_id: Number(document.getElementById("cm-hotel").value),
+      tipo_habitacion_id: Number(document.getElementById("cm-tipo").value),
+      fecha_checkin: document.getElementById("cm-in").value,
+      fecha_checkout: document.getElementById("cm-out").value,
+      monto_total: Number(document.getElementById("cm-monto").value),
+      canal: document.getElementById("cm-canal").value
+    };
+    try{ set("r-channel", await post("/channel/channel/webhook/booking", body), "success"); }
+    catch(e){ set("r-channel", e.message, "error"); }
+  }
 
-    async function iniciarTurno() {
-      const body = {
-        hotel_id: Number(document.getElementById("rec-hotel").value),
-        fecha: document.getElementById("rec-fecha").value
-      };
-      set("r-recepcion", await post("/recepcion/recepcion/iniciar-turno", body));
-    }
+  // Recepción
+  async function iniciarTurno(){
+    const body = {
+      hotel_id: Number(document.getElementById("rec-hotel").value),
+      fecha: document.getElementById("rec-fecha").value
+    };
+    try{ set("r-recepcion", await post("/recepcion/recepcion/iniciar-turno", body), "success"); }
+    catch(e){ set("r-recepcion", e.message, "error"); }
+  }
+  async function listarLlegadas(){
+    const hotel_id = document.getElementById("rec-hotel").value;
+    const fecha = document.getElementById("rec-fecha").value;
+    try{ set("r-recepcion", await get(`/recepcion/recepcion/llegadas?hotel_id=${hotel_id}&fecha_checkin=${fecha}`), "success"); }
+    catch(e){ set("r-recepcion", e.message, "error"); }
+  }
+  async function checkin(){
+    const body = {
+      reserva_id: Number(document.getElementById("rec-reserva-id").value),
+      numero_habitacion: document.getElementById("rec-habitacion").value
+    };
+    try{ set("r-recepcion", await post("/recepcion/recepcion/checkin", body), "success"); }
+    catch(e){ set("r-recepcion", e.message, "error"); }
+  }
+  async function checkout(){
+    const body = { reserva_id: Number(document.getElementById("rec-reserva-id").value) };
+    try{ set("r-recepcion", await post("/recepcion/recepcion/checkout", body), "success"); }
+    catch(e){ set("r-recepcion", e.message, "error"); }
+  }
 
-    async function listarLlegadas() {
-      const hotel_id = document.getElementById("rec-hotel").value;
-      const fecha = document.getElementById("rec-fecha").value;
-      set("r-recepcion", await get(`/recepcion/recepcion/llegadas?hotel_id=${hotel_id}&fecha_checkin=${fecha}`));
-    }
+  // Housekeeping
+  async function listarHabitaciones(){
+    try{ set("r-housekeeping", await get("/housekeeping/housekeeping/habitaciones"), "success"); }
+    catch(e){ set("r-housekeeping", e.message, "error"); }
+  }
+  async function consultarEstadoHabitacion(){
+    const num = document.getElementById("hk-habitacion").value;
+    try{ set("r-housekeeping", await get(`/housekeeping/housekeeping/habitaciones/${num}/estado`), "success"); }
+    catch(e){ set("r-housekeeping", e.message, "error"); }
+  }
+  async function actualizarEstadoHabitacion(){
+    const num = document.getElementById("hk-habitacion").value;
+    const estado = document.getElementById("hk-estado").value;
+    try{ set("r-housekeeping", await patch(`/housekeeping/housekeeping/habitaciones/${num}/estado`, { estado }), "success"); }
+    catch(e){ set("r-housekeeping", e.message, "error"); }
+  }
 
-    async function checkin() {
-      const body = {
-        reserva_id: Number(document.getElementById("rec-reserva-id").value),
-        numero_habitacion: document.getElementById("rec-habitacion").value
-      };
-      set("r-recepcion", await post("/recepcion/recepcion/checkin", body));
-    }
+  // Facturación
+  async function listarFolios(){
+    try{ set("r-facturacion", await get("/facturacion/facturacion/folios"), "success"); }
+    catch(e){ set("r-facturacion", e.message, "error"); }
+  }
+  async function listarFacturas(){
+    try{ set("r-facturacion", await get("/facturacion/facturacion/facturas"), "success"); }
+    catch(e){ set("r-facturacion", e.message, "error"); }
+  }
 
-    async function checkout() {
-      const body = { reserva_id: Number(document.getElementById("rec-reserva-id").value) };
-      set("r-recepcion", await post("/recepcion/recepcion/checkout", body));
-    }
+  // Fidelización
+  async function consultarCuenta(){
+    const guest = document.getElementById("fid-guest").value;
+    try{ set("r-fidelizacion", await get(`/fidelizacion/fidelizacion/cuentas/${guest}`), "success"); }
+    catch(e){ set("r-fidelizacion", e.message, "error"); }
+  }
+  async function listarTransacciones(){
+    const guest = document.getElementById("fid-guest").value;
+    try{ set("r-fidelizacion", await get(`/fidelizacion/fidelizacion/cuentas/${guest}/transacciones`), "success"); }
+    catch(e){ set("r-fidelizacion", e.message, "error"); }
+  }
 
-    async function listarHabitaciones() { set("r-housekeeping", await get("/housekeeping/housekeeping/habitaciones")); }
+  // Analytics
+  async function ejecutarETL(){
+    try{ set("r-analytics", await post("/analytics/analytics/etl", {}), "success"); }
+    catch(e){ set("r-analytics", e.message, "error"); }
+  }
+  async function listarKPIs(){
+    try{ set("r-analytics", await get("/analytics/analytics/kpis"), "success"); }
+    catch(e){ set("r-analytics", e.message, "error"); }
+  }
 
-    async function consultarEstadoHabitacion() {
-      const num = document.getElementById("hk-habitacion").value;
-      set("r-housekeeping", await get(`/housekeeping/housekeeping/habitaciones/${num}/estado`));
-    }
+  // Flujo automático
+  async function probarFlujoCompleto(){
+    showToast("Ejecutando flujo automático...", "");
+    await listarHoteles();
+    await consultarDisponibilidad();
+    await crearReserva();
+    await new Promise(r => setTimeout(r, 800));
+    await listarLlegadas();
+    await checkin();
+    await new Promise(r => setTimeout(r, 400));
+    await checkout();
+    await new Promise(r => setTimeout(r, 800));
+    await consultarEstadoHabitacion();
+    await listarFolios();
+    await consultarCuenta();
+    await ejecutarETL();
+    await listarKPIs();
+    showToast("Flujo automático completado", "success");
+  }
 
-    async function actualizarEstadoHabitacion() {
-      const num = document.getElementById("hk-habitacion").value;
-      const estado = document.getElementById("hk-estado").value;
-      set("r-housekeeping", await patch(`/housekeeping/housekeeping/habitaciones/${num}/estado`, { estado }));
-    }
-
-    async function listarFolios() { set("r-facturacion", await get("/facturacion/facturacion/folios")); }
-    async function listarFacturas() { set("r-facturacion", await get("/facturacion/facturacion/facturas")); }
-
-    async function consultarCuenta() {
-      const guest = document.getElementById("fid-guest").value;
-      set("r-fidelizacion", await get(`/fidelizacion/fidelizacion/cuentas/${guest}`));
-    }
-
-    async function listarTransacciones() {
-      const guest = document.getElementById("fid-guest").value;
-      set("r-fidelizacion", await get(`/fidelizacion/fidelizacion/cuentas/${guest}/transacciones`));
-    }
-
-    async function ejecutarETL() { set("r-analytics", await post("/analytics/analytics/etl", {})); }
-    async function listarKPIs() { set("r-analytics", await get("/analytics/analytics/kpis")); }
-  </script>
+  setDefaultDates();
+  setTimeout(verificarConexion, 500);
+</script>
 </body>
 </html>
