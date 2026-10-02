@@ -83,16 +83,18 @@ for (const [ruta, target] of Object.entries(servicios)) {
       target,
       changeOrigin: true,
       pathRewrite: (path) => `/api${path}`,
-      onError: (err, req, res) => {
-        res.status(502).json({ error: `Servicio ${ruta} no disponible`, detalle: err.message });
-      },
-      onProxyReq: (proxyReq, req) => {
-        // Reenviamos la informacion del usuario autenticado a los servicios.
-        // Esto permite que propiedades/reservas filtren por owner_id / usuario_id.
-        if (req.user) {
-          proxyReq.setHeader("x-user-id", req.user.id || "");
-          proxyReq.setHeader("x-user-rol", req.user.rol || "");
-          proxyReq.setHeader("x-user-email", req.user.email || "");
+      on: {
+        error: (err, req, res) => {
+          res.status(502).json({ error: `Servicio ${ruta} no disponible`, detalle: err.message });
+        },
+        proxyReq: (proxyReq, req) => {
+          // Reenviamos la informacion del usuario autenticado a los servicios.
+          // Esto permite que propiedades/reservas filtren por owner_id / usuario_id.
+          if (req.user) {
+            proxyReq.setHeader("x-user-id", String(req.user.id || ""));
+            proxyReq.setHeader("x-user-rol", String(req.user.rol || ""));
+            proxyReq.setHeader("x-user-email", String(req.user.email || ""));
+          }
         }
       }
     })
