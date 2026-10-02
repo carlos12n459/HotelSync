@@ -545,8 +545,7 @@
     document.getElementById("statusText").textContent = text;
   }
 
-  async function request(id, promise){
-    set(id, "Cargando...", "loading");
+  async function request(promise){
     try{
       const resp = await promise;
       if (!resp.ok) {
@@ -563,16 +562,16 @@
     }
   }
 
-  async function get(ruta){ return request("_", fetch(`${BASE}${ruta}`)); }
+  async function get(ruta){ return request(fetch(`${BASE}${ruta}`)); }
   async function post(ruta, body){
-    return request("_", fetch(`${BASE}${ruta}`, {
+    return request(fetch(`${BASE}${ruta}`, {
       method: "POST",
       headers: {"Content-Type":"application/json"},
       body: JSON.stringify(body)
     }));
   }
   async function patch(ruta, body){
-    return request("_", fetch(`${BASE}${ruta}`, {
+    return request(fetch(`${BASE}${ruta}`, {
       method: "PATCH",
       headers: {"Content-Type":"application/json"},
       body: JSON.stringify(body)
