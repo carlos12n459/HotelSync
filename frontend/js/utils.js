@@ -256,7 +256,7 @@ function renderLoading(containerId, mensaje = "Cargando...", options = {}){
   if(!el) return;
   el.classList.remove("hidden");
   if(options.setClass !== false) el.className = "result loading";
-  el.textContent = mensaje;
+  el.innerHTML = `<div class="loading-state" style="padding:0;"><div class="spinner"></div><span>${escaparHtml(mensaje)}</span></div>`;
 }
 
 function redirigirPorRol(rol){

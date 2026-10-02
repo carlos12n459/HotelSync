@@ -30,15 +30,22 @@
   </div>
 </div>
 
-<main class="container">
+<header class="page-header">
+  <div class="page-header-inner">
+    <h1>Mis reservas</h1>
+    <p>Revisa el historial y el estado de tus reservas.</p>
+  </div>
+</header>
+
+<main class="container" style="padding-top:56px;">
   <div class="section">
     <div class="section-head">
       <div class="section-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
       </div>
       <div class="section-title">
-        <h2>Mis reservas</h2>
-        <p>Historial de reservas realizadas</p>
+        <h2>Historial de reservas</h2>
+        <p>Todas tus estadias confirmadas y pasadas</p>
       </div>
     </div>
     <div id="reservas-lista" class="card-grid"></div>
@@ -57,24 +64,31 @@
   document.addEventListener("DOMContentLoaded", cargarReservas);
 
   async function cargarReservas(){
-    renderLoading("reservas-lista", "Cargando...", { setClass: false });
+    const contenedor = $("reservas-lista");
+    contenedor.innerHTML = `<div class="loading-state" style="grid-column:1/-1;"><div class="spinner spinner-lg"></div><span>Cargando reservas...</span></div>`;
 
     try {
       const reservas = await apiMisReservas();
       if(reservas.length === 0){
-        renderData("reservas-lista", [], { setClass: false, emptyMessage: "Aun no tienes reservas." });
+        contenedor.innerHTML = `
+          <div class="empty-state" style="grid-column:1/-1;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            <h3>Aun no tienes reservas</h3>
+            <p><a href="dashboard.html" style="color:var(--sky-700);font-weight:600;">Busca un hotel</a> y reserva tu primera estadia.</p>
+          </div>`;
         return;
       }
 
-      // Se conserva el renderizado manual para incluir el boton de cancelar.
-      $("reservas-lista").innerHTML = reservas.map(r => `
+      contenedor.innerHTML = reservas.map(r => `
         <div class="card">
           <div class="card-body">
             <div class="card-title">Reserva #${r.id}</div>
             <div class="card-text">Hotel ID: ${r.hotel_id}</div>
             <div class="card-text">Entrada: ${formatearFecha(r.fecha_checkin)} — Salida: ${formatearFecha(r.fecha_checkout)}</div>
             <div class="card-text">Total: ${formatearPrecio(r.monto_total)}</div>
-            <div class="card-text">Estado: <strong>${r.estado}</strong></div>
+            <div class="card-meta">
+              <span class="badge ${r.estado === 'confirmada' ? 'badge-ok' : (r.estado === 'cancelada' ? 'badge-warn' : 'badge-info')}">${r.estado}</span>
+            </div>
           </div>
           <div class="card-actions">
             ${r.estado === "confirmada" ? `<button class="btn btn-danger" style="flex:1;" onclick="cancelarReserva(${r.id})">Cancelar</button>` : ""}
@@ -82,7 +96,12 @@
         </div>
       `).join("");
     } catch(error){
-      renderError("reservas-lista", error.message, { setClass: false });
+      contenedor.innerHTML = `
+        <div class="empty-state" style="grid-column:1/-1;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <h3>Error al cargar</h3>
+          <p>${error.message}</p>
+        </div>`;
     }
   }
 

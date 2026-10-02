@@ -29,7 +29,14 @@
   </div>
 </div>
 
-<main class="container">
+<header class="page-header">
+  <div class="page-header-inner">
+    <h1>Administracion</h1>
+    <p>Gestion de usuarios, propiedades y reservas del sistema.</p>
+  </div>
+</header>
+
+<main class="container" style="padding-top:56px;">
 
   <div class="section">
     <div class="section-head">
@@ -52,9 +59,9 @@
         </select>
       </div>
     </div>
-    <div class="btn-group" style="margin-top:14px;">
-      <button class="btn" onclick="cambiarRol()">Cambiar rol</button>
-      <button class="btn btn-secondary" onclick="consultarUsuario()">Consultar usuario</button>
+    <div class="btn-group" style="margin-top:16px;">
+      <button class="btn" id="btn-rol" onclick="cambiarRol()">Cambiar rol</button>
+      <button class="btn btn-secondary" id="btn-consultar" onclick="consultarUsuario()">Consultar usuario</button>
     </div>
     <div id="usr-resultado" class="result hidden"></div>
   </div>
@@ -69,9 +76,9 @@
         <p>Vista global de hoteles registrados</p>
       </div>
     </div>
-    <div class="btn-group" style="margin-bottom:16px;">
-      <button class="btn" onclick="cargarHoteles()">Cargar hoteles</button>
-      <button class="btn btn-secondary" onclick="cargarReservas()">Cargar reservas</button>
+    <div class="btn-group" style="margin-bottom:18px;">
+      <button class="btn" id="btn-cargar-hoteles" onclick="cargarHoteles()">Cargar hoteles</button>
+      <button class="btn btn-secondary" id="btn-cargar-reservas" onclick="cargarReservas()">Cargar reservas</button>
     </div>
     <div id="admin-lista" class="card-grid"></div>
   </div>
@@ -87,7 +94,23 @@
   protegerRol(["admin"]);
   renderizarUsuario();
 
+  function setLoading(btn, loading){
+    if(loading){
+      btn.disabled = true;
+      btn.innerHTML = `<div class="spinner spinner-sm"></div><span>Procesando...</span>`;
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = btn.getAttribute('data-text') || btn.textContent;
+    }
+  }
+
+  document.querySelectorAll('.btn-group button').forEach(b => {
+    if(!b.getAttribute('data-text')) b.setAttribute('data-text', b.textContent);
+  });
+
   async function cambiarRol(){
+    const btn = $("btn-rol");
+    setLoading(btn, true);
     const resEl = $("usr-resultado");
     resEl.classList.remove("hidden", "error", "success");
     resEl.classList.add("loading");
@@ -99,10 +122,14 @@
       mostrarResultado(resEl, resp);
     } catch(error){
       mostrarError(resEl, error.message);
+    } finally {
+      setLoading(btn, false);
     }
   }
 
   async function consultarUsuario(){
+    const btn = $("btn-consultar");
+    setLoading(btn, true);
     const resEl = $("usr-resultado");
     resEl.classList.remove("hidden", "error", "success");
     resEl.classList.add("loading");
@@ -111,24 +138,57 @@
       mostrarResultado(resEl, resp);
     } catch(error){
       mostrarError(resEl, error.message);
+    } finally {
+      setLoading(btn, false);
     }
   }
 
   async function cargarHoteles(){
-    renderLoading("admin-lista", "Cargando...", { setClass: false });
+    const btn = $("btn-cargar-hoteles");
+    setLoading(btn, true);
+    const contenedor = $("admin-lista");
+    contenedor.innerHTML = `<div class="loading-state" style="grid-column:1/-1;"><div class="spinner spinner-lg"></div><span>Cargando hoteles...</span></div>`;
     try {
       const hoteles = await apiListarHoteles();
-      renderData("admin-lista", hoteles, {
-        setClass: false,
-        emptyMessage: "No hay hoteles registrados."
-      });
+      if(hoteles.length === 0){
+        contenedor.innerHTML = `
+          <div class="empty-state" style="grid-column:1/-1;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            <h3>No hay hoteles registrados</h3>
+          </div>`;
+        return;
+      }
+      contenedor.innerHTML = hoteles.map(h => `
+        <div class="card">
+          <div class="card-img">
+            ${h.imagen_url ? `<img src="${API_BASE}${h.imagen_url}" alt="${h.nombre}" onerror="this.style.display='none'" />` : "Sin imagen"}
+          </div>
+          <div class="card-body">
+            <div class="card-title">${h.nombre}</div>
+            <div class="card-text">${h.ciudad}, ${h.pais}</div>
+            <div class="card-meta">
+              <span class="badge ${h.activo ? 'badge-ok' : 'badge-warn'}">${h.activo ? "Activo" : "Inactivo"}</span>
+            </div>
+          </div>
+        </div>
+      `).join("");
     } catch(error){
-      renderError("admin-lista", error.message, { setClass: false });
+      contenedor.innerHTML = `
+        <div class="empty-state" style="grid-column:1/-1;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <h3>Error al cargar</h3>
+          <p>${error.message}</p>
+        </div>`;
+    } finally {
+      setLoading(btn, false);
     }
   }
 
   async function cargarReservas(){
-    renderLoading("admin-lista", "Cargando...", { setClass: false });
+    const btn = $("btn-cargar-reservas");
+    setLoading(btn, true);
+    const contenedor = $("admin-lista");
+    contenedor.innerHTML = `<div class="loading-state" style="grid-column:1/-1;"><div class="spinner spinner-lg"></div><span>Cargando reservas...</span></div>`;
     try {
       const reservas = await apiListarReservas();
       renderData("admin-lista", reservas, {
@@ -136,7 +196,14 @@
         emptyMessage: "No hay reservas registradas."
       });
     } catch(error){
-      renderError("admin-lista", error.message, { setClass: false });
+      contenedor.innerHTML = `
+        <div class="empty-state" style="grid-column:1/-1;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <h3>Error al cargar</h3>
+          <p>${error.message}</p>
+        </div>`;
+    } finally {
+      setLoading(btn, false);
     }
   }
 

@@ -31,7 +31,14 @@
   </div>
 </div>
 
-<main class="container">
+<header class="page-header">
+  <div class="page-header-inner">
+    <h1>Gestionar hoteles</h1>
+    <p>Crea y administra las propiedades de tu cadena hotelera.</p>
+  </div>
+</header>
+
+<main class="container" style="padding-top:56px;">
 
   <div class="section">
     <div class="section-head">
@@ -57,7 +64,7 @@
         </div>
       </div>
       <div class="btn-group" style="margin-top:18px;">
-        <button class="btn btn-success" type="submit">Crear hotel</button>
+        <button class="btn btn-success" type="submit" id="btn-crear-hotel">Crear hotel</button>
       </div>
     </form>
     <div id="hotel-resultado" class="result hidden"></div>
@@ -88,8 +95,20 @@
 
   document.addEventListener("DOMContentLoaded", cargarHoteles);
 
+  function setLoading(btn, loading){
+    if(loading){
+      btn.disabled = true;
+      btn.innerHTML = `<div class="spinner spinner-sm"></div><span>Guardando...</span>`;
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = "Crear hotel";
+    }
+  }
+
   async function crearHotel(e){
     e.preventDefault();
+    const btn = $("btn-crear-hotel");
+    setLoading(btn, true);
     renderLoading("hotel-resultado", "Subiendo imagen...");
 
     let imagenUrl = "";
@@ -120,23 +139,30 @@
     } catch(error){
       renderError("hotel-resultado", error.message);
       mostrarToast(error.message, "error");
+    } finally {
+      setLoading(btn, false);
     }
 
     return false;
   }
 
   async function cargarHoteles(){
-    renderLoading("lista-hoteles", "Cargando...", { setClass: false });
+    const contenedor = $("lista-hoteles");
+    contenedor.innerHTML = `<div class="loading-state" style="grid-column:1/-1;"><div class="spinner spinner-lg"></div><span>Cargando...</span></div>`;
 
     try {
       const hoteles = await apiListarHotelesMios();
       if(hoteles.length === 0){
-        renderData("lista-hoteles", [], { setClass: false, emptyMessage: "No tienes hoteles registrados." });
+        contenedor.innerHTML = `
+          <div class="empty-state" style="grid-column:1/-1;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            <h3>No tienes hoteles registrados</h3>
+            <p>Crea tu primer hotel usando el formulario de arriba.</p>
+          </div>`;
         return;
       }
 
-      // Se conserva el renderizado manual para agregar el enlace de gestion.
-      $("lista-hoteles").innerHTML = hoteles.map(h => `
+      contenedor.innerHTML = hoteles.map(h => `
         <div class="card">
           <div class="card-img">
             ${h.imagen_url ? `<img src="${API_BASE}${h.imagen_url}" alt="${h.nombre}" onerror="this.style.display='none'" />` : "Sin imagen"}
@@ -145,6 +171,9 @@
             <div class="card-title">${h.nombre}</div>
             <div class="card-text">${h.ciudad}, ${h.pais}</div>
             <div class="card-text">${h.direccion || ""}</div>
+            <div class="card-meta">
+              <span class="badge ${h.activo ? 'badge-ok' : 'badge-warn'}">${h.activo ? "Activo" : "Inactivo"}</span>
+            </div>
           </div>
           <div class="card-actions">
             <a class="btn btn-outline" style="flex:1;" href="habitaciones.html?hotel_id=${h.id}">Gestionar</a>
@@ -152,7 +181,12 @@
         </div>
       `).join("");
     } catch(error){
-      renderError("lista-hoteles", error.message, { setClass: false });
+      contenedor.innerHTML = `
+        <div class="empty-state" style="grid-column:1/-1;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <h3>Error al cargar</h3>
+          <p>${error.message}</p>
+        </div>`;
     }
   }
 </script>

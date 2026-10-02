@@ -31,7 +31,14 @@
   </div>
 </div>
 
-<main class="container">
+<header class="page-header">
+  <div class="page-header-inner">
+    <h1>Tus hoteles</h1>
+    <p>Administra tus propiedades, habitaciones y reservas desde un solo lugar.</p>
+  </div>
+</header>
+
+<main class="container" style="padding-top:56px;">
 
   <div class="section">
     <div class="section-head">
@@ -60,17 +67,22 @@
   document.addEventListener("DOMContentLoaded", cargarMisHoteles);
 
   async function cargarMisHoteles(){
-    renderLoading("mis-hoteles", "Cargando...", { setClass: false });
+    const contenedor = $("mis-hoteles");
+    contenedor.innerHTML = `<div class="loading-state" style="grid-column:1/-1;"><div class="spinner spinner-lg"></div><span>Cargando tus hoteles...</span></div>`;
 
     try {
       const hoteles = await apiListarHotelesMios();
       if(hoteles.length === 0){
-        $("mis-hoteles").innerHTML = `<p style='color:var(--slate-500)'>No tienes hoteles registrados. <a href="hoteles.html" style="color:var(--sky-700);font-weight:600;">Crea el primero</a>.</p>`;
+        contenedor.innerHTML = `
+          <div class="empty-state" style="grid-column:1/-1;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            <h3>No tienes hoteles registrados</h3>
+            <p><a href="hoteles.html" style="color:var(--sky-700);font-weight:600;">Crea el primero</a> y empieza a gestionarlo.</p>
+          </div>`;
         return;
       }
 
-      // Se conserva el renderizado manual para agregar el enlace a habitaciones.
-      $("mis-hoteles").innerHTML = hoteles.map(h => `
+      contenedor.innerHTML = hoteles.map(h => `
         <div class="card">
           <div class="card-img">
             ${h.imagen_url ? `<img src="${API_BASE}${h.imagen_url}" alt="${h.nombre}" onerror="this.style.display='none'" />` : "Sin imagen"}
@@ -79,7 +91,9 @@
             <div class="card-title">${h.nombre}</div>
             <div class="card-text">${h.ciudad}, ${h.pais}</div>
             <div class="card-text">${h.direccion || ""}</div>
-            <div class="card-text">Estado: ${h.activo ? "Activo" : "Inactivo"}</div>
+            <div class="card-meta">
+              <span class="badge ${h.activo ? 'badge-ok' : 'badge-warn'}">${h.activo ? "Activo" : "Inactivo"}</span>
+            </div>
           </div>
           <div class="card-actions">
             <a class="btn btn-outline" style="flex:1;" href="habitaciones.html?hotel_id=${h.id}">Habitaciones</a>
@@ -87,7 +101,12 @@
         </div>
       `).join("");
     } catch(error){
-      renderError("mis-hoteles", error.message, { setClass: false });
+      contenedor.innerHTML = `
+        <div class="empty-state" style="grid-column:1/-1;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <h3>Error al cargar</h3>
+          <p>${error.message}</p>
+        </div>`;
     }
   }
 </script>

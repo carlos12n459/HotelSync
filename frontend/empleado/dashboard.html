@@ -29,7 +29,14 @@
   </div>
 </div>
 
-<main class="container">
+<header class="page-header">
+  <div class="page-header-inner">
+    <h1>Operaciones del dia</h1>
+    <p>Gestiona check-ins, check-outs, llegadas y el estado de limpieza.</p>
+  </div>
+</header>
+
+<main class="container" style="padding-top:56px;">
 
   <div class="section">
     <div class="section-head">
@@ -53,8 +60,8 @@
         <div class="field"><label>Reserva ID</label><input type="number" id="ci-reserva" /></div>
         <div class="field"><label>Habitacion</label><input type="text" id="ci-habitacion" placeholder="Ej: 101" /></div>
       </div>
-      <div class="btn-group" style="margin-top:14px;">
-        <button class="btn btn-success" onclick="hacerCheckin()">Realizar check-in</button>
+      <div class="btn-group" style="margin-top:16px;">
+        <button class="btn btn-success" id="btn-checkin" onclick="hacerCheckin()">Realizar check-in</button>
       </div>
       <div id="ci-resultado" class="result hidden"></div>
     </div>
@@ -63,8 +70,8 @@
       <div class="grid-3">
         <div class="field"><label>Reserva ID</label><input type="number" id="co-reserva" /></div>
       </div>
-      <div class="btn-group" style="margin-top:14px;">
-        <button class="btn btn-danger" onclick="hacerCheckout()">Realizar check-out</button>
+      <div class="btn-group" style="margin-top:16px;">
+        <button class="btn btn-danger" id="btn-checkout" onclick="hacerCheckout()">Realizar check-out</button>
       </div>
       <div id="co-resultado" class="result hidden"></div>
     </div>
@@ -74,8 +81,8 @@
         <div class="field"><label>Hotel ID</label><input type="number" id="lleg-hotel" value="1" /></div>
         <div class="field"><label>Fecha</label><input type="date" id="lleg-fecha" /></div>
       </div>
-      <div class="btn-group" style="margin-top:14px;">
-        <button class="btn" onclick="consultarLlegadas()">Consultar llegadas</button>
+      <div class="btn-group" style="margin-top:16px;">
+        <button class="btn" id="btn-llegadas" onclick="consultarLlegadas()">Consultar llegadas</button>
       </div>
       <div id="lleg-resultado" class="result hidden"></div>
     </div>
@@ -91,7 +98,8 @@
         <p>Gestion del estado de limpieza de habitaciones</p>
       </div>
     </div>
-    <div class="grid-3">
+
+    <div class="grid-3" style="margin-bottom:18px;">
       <div class="field"><label>Habitacion</label><input type="text" id="hk-habitacion" placeholder="Ej: 101" /></div>
       <div class="field"><label>Nuevo estado</label>
         <select id="hk-estado">
@@ -102,10 +110,24 @@
         </select>
       </div>
     </div>
-    <div class="btn-group" style="margin-top:14px;">
-      <button class="btn" onclick="consultarEstado()">Consultar estado</button>
-      <button class="btn btn-success" onclick="actualizarEstado()">Actualizar estado</button>
-      <button class="btn btn-secondary" onclick="listarHabitacionesLimpieza()">Listar habitaciones</button>
+
+    <div style="margin-bottom:22px;">
+      <label style="font-size:0.75rem;font-weight:700;color:var(--slate-500);text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:10px;">Dias de mantenimiento programado</label>
+      <div class="checkbox-pill-group" id="dias-mantenimiento">
+        <button type="button" class="checkbox-pill" onclick="toggleDia(this)">L</button>
+        <button type="button" class="checkbox-pill" onclick="toggleDia(this)">M</button>
+        <button type="button" class="checkbox-pill" onclick="toggleDia(this)">M</button>
+        <button type="button" class="checkbox-pill" onclick="toggleDia(this)">J</button>
+        <button type="button" class="checkbox-pill" onclick="toggleDia(this)">V</button>
+        <button type="button" class="checkbox-pill" onclick="toggleDia(this)">S</button>
+        <button type="button" class="checkbox-pill" onclick="toggleDia(this)">D</button>
+      </div>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn" id="btn-hk-consultar" onclick="consultarEstado()">Consultar estado</button>
+      <button class="btn btn-success" id="btn-hk-actualizar" onclick="actualizarEstado()">Actualizar estado</button>
+      <button class="btn btn-secondary" id="btn-hk-listar" onclick="listarHabitacionesLimpieza()">Listar habitaciones</button>
     </div>
     <div id="hk-resultado" class="result hidden"></div>
   </div>
@@ -126,6 +148,16 @@
     $("lleg-fecha").value = hoy;
   });
 
+  function setLoading(btn, loading){
+    if(loading){
+      btn.disabled = true;
+      btn.innerHTML = `<div class="spinner spinner-sm"></div><span>Procesando...</span>`;
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = btn.textContent;
+    }
+  }
+
   function mostrarTab(tab){
     ["checkin", "checkout", "llegadas"].forEach(t => {
       $("panel-" + t).classList.add("hidden");
@@ -135,7 +167,13 @@
     $("tab" + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add("active");
   }
 
+  function toggleDia(btn){
+    btn.classList.toggle("active");
+  }
+
   async function hacerCheckin(){
+    const btn = $("btn-checkin");
+    setLoading(btn, true);
     const resEl = $("ci-resultado");
     resEl.classList.remove("hidden", "error", "success");
     resEl.classList.add("loading");
@@ -147,10 +185,14 @@
       mostrarResultado(resEl, resp);
     } catch(error){
       mostrarError(resEl, error.message);
+    } finally {
+      setLoading(btn, false);
     }
   }
 
   async function hacerCheckout(){
+    const btn = $("btn-checkout");
+    setLoading(btn, true);
     const resEl = $("co-resultado");
     resEl.classList.remove("hidden", "error", "success");
     resEl.classList.add("loading");
@@ -159,10 +201,14 @@
       mostrarResultado(resEl, resp);
     } catch(error){
       mostrarError(resEl, error.message);
+    } finally {
+      setLoading(btn, false);
     }
   }
 
   async function consultarLlegadas(){
+    const btn = $("btn-llegadas");
+    setLoading(btn, true);
     const resEl = $("lleg-resultado");
     resEl.classList.remove("hidden", "error", "success");
     resEl.classList.add("loading");
@@ -171,10 +217,14 @@
       mostrarResultado(resEl, resp);
     } catch(error){
       mostrarError(resEl, error.message);
+    } finally {
+      setLoading(btn, false);
     }
   }
 
   async function consultarEstado(){
+    const btn = $("btn-hk-consultar");
+    setLoading(btn, true);
     const resEl = $("hk-resultado");
     resEl.classList.remove("hidden", "error", "success");
     resEl.classList.add("loading");
@@ -183,10 +233,14 @@
       mostrarResultado(resEl, resp);
     } catch(error){
       mostrarError(resEl, error.message);
+    } finally {
+      setLoading(btn, false);
     }
   }
 
   async function actualizarEstado(){
+    const btn = $("btn-hk-actualizar");
+    setLoading(btn, true);
     const resEl = $("hk-resultado");
     resEl.classList.remove("hidden", "error", "success");
     resEl.classList.add("loading");
@@ -195,10 +249,14 @@
       mostrarResultado(resEl, resp);
     } catch(error){
       mostrarError(resEl, error.message);
+    } finally {
+      setLoading(btn, false);
     }
   }
 
   async function listarHabitacionesLimpieza(){
+    const btn = $("btn-hk-listar");
+    setLoading(btn, true);
     const resEl = $("hk-resultado");
     resEl.classList.remove("hidden", "error", "success");
     resEl.classList.add("loading");
@@ -207,11 +265,12 @@
       mostrarResultado(resEl, resp);
     } catch(error){
       mostrarError(resEl, error.message);
+    } finally {
+      setLoading(btn, false);
     }
   }
 
   function mostrarResultado(el, datos){
-    // Se reutiliza el ID del elemento para renderizar visualmente con renderData.
     renderData(el.id, datos);
   }
 

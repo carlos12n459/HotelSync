@@ -31,7 +31,14 @@
   </div>
 </div>
 
-<main class="container">
+<header class="page-header">
+  <div class="page-header-inner">
+    <h1>Gestionar habitaciones</h1>
+    <p>Selecciona un hotel para agregar tipos de habitacion y habitaciones fisicas.</p>
+  </div>
+</header>
+
+<main class="container" style="padding-top:56px;">
 
   <div class="section">
     <div class="section-head">
@@ -39,11 +46,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
       </div>
       <div class="section-title">
-        <h2>Gestionar habitaciones</h2>
-        <p>Selecciona un hotel para agregar tipos de habitacion y habitaciones fisicas</p>
+        <h2>Hotel seleccionado</h2>
       </div>
     </div>
-    <div class="field" style="margin-bottom:18px;">
+    <div class="field" style="max-width:420px;">
       <label>Hotel</label>
       <select id="select-hotel" onchange="cambiarHotel()"></select>
     </div>
@@ -69,7 +75,7 @@
         </div>
       </div>
       <div class="btn-group" style="margin-top:16px;">
-        <button class="btn btn-success" type="submit">Agregar tipo</button>
+        <button class="btn btn-success" type="submit" id="btn-tipo">Agregar tipo</button>
       </div>
     </form>
     <div id="tipo-resultado" class="result hidden"></div>
@@ -91,7 +97,7 @@
         <div class="field"><label>Piso</label><input type="text" id="hab-piso" /></div>
       </div>
       <div class="btn-group" style="margin-top:16px;">
-        <button class="btn btn-success" type="submit">Agregar habitacion</button>
+        <button class="btn btn-success" type="submit" id="btn-hab">Agregar habitacion</button>
       </div>
     </form>
     <div id="hab-resultado" class="result hidden"></div>
@@ -145,6 +151,20 @@
     cambiarHotel();
   });
 
+  function setLoading(btn, loading){
+    if(loading){
+      btn.disabled = true;
+      btn.innerHTML = `<div class="spinner spinner-sm"></div><span>Guardando...</span>`;
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = btn.getAttribute('data-text') || btn.textContent;
+    }
+  }
+
+  document.querySelectorAll('button[type="submit"]').forEach(b => {
+    if(!b.getAttribute('data-text')) b.setAttribute('data-text', b.textContent);
+  });
+
   async function cargarHoteles(){
     const select = $("select-hotel");
     select.innerHTML = "<option value=''>Cargando...</option>";
@@ -165,37 +185,86 @@
 
   async function cargarTipos(){
     const select = $("hab-tipo");
-    renderLoading("tipos-lista", "Cargando...", { setClass: false });
+    const contenedor = $("tipos-lista");
+    contenedor.innerHTML = `<div class="loading-state" style="grid-column:1/-1;"><div class="spinner spinner-lg"></div><span>Cargando tipos...</span></div>`;
 
     try {
       const tipos = await apiListarTiposHabitacion(hotelIdActual);
       select.innerHTML = tipos.map(t => `<option value="${t.id}">${t.nombre}</option>`).join("");
 
-      renderData("tipos-lista", tipos, {
-        setClass: false,
-        emptyMessage: "No hay tipos de habitacion."
-      });
+      if(tipos.length === 0){
+        contenedor.innerHTML = `
+          <div class="empty-state" style="grid-column:1/-1;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+            <h3>No hay tipos de habitacion</h3>
+            <p>Agrega el primero usando el formulario de arriba.</p>
+          </div>`;
+        return;
+      }
+
+      contenedor.innerHTML = tipos.map(t => `
+        <div class="card">
+          <div class="card-img">
+            ${t.imagen_url ? `<img src="${API_BASE}${t.imagen_url}" alt="${t.nombre}" onerror="this.style.display='none'" />` : "Sin imagen"}
+          </div>
+          <div class="card-body">
+            <div class="card-title">${t.nombre}</div>
+            <div class="card-text">Capacidad: ${t.capacidad} personas</div>
+            <div class="card-text">Tarifa base: ${formatearPrecio(t.tarifa_base)}</div>
+          </div>
+        </div>
+      `).join("");
     } catch(error){
-      renderError("tipos-lista", error.message, { setClass: false });
+      contenedor.innerHTML = `
+        <div class="empty-state" style="grid-column:1/-1;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <h3>Error al cargar</h3>
+          <p>${error.message}</p>
+        </div>`;
     }
   }
 
   async function cargarHabitaciones(){
-    renderLoading("habitaciones-lista", "Cargando...", { setClass: false });
+    const contenedor = $("habitaciones-lista");
+    contenedor.innerHTML = `<div class="loading-state" style="grid-column:1/-1;"><div class="spinner spinner-lg"></div><span>Cargando habitaciones...</span></div>`;
 
     try {
       const habitaciones = await apiListarHabitaciones(hotelIdActual);
-      renderData("habitaciones-lista", habitaciones, {
-        setClass: false,
-        emptyMessage: "No hay habitaciones fisicas."
-      });
+      if(habitaciones.length === 0){
+        contenedor.innerHTML = `
+          <div class="empty-state" style="grid-column:1/-1;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            <h3>No hay habitaciones fisicas</h3>
+            <p>Agrega habitaciones al tipo seleccionado.</p>
+          </div>`;
+        return;
+      }
+
+      contenedor.innerHTML = habitaciones.map(h => `
+        <div class="card">
+          <div class="card-body">
+            <div class="card-title">Habitacion ${h.numero}</div>
+            <div class="card-text">Piso: ${h.piso || "N/A"}</div>
+            <div class="card-meta">
+              <span class="badge ${h.activa ? 'badge-ok' : 'badge-warn'}">${h.activa ? "Activa" : "Inactiva"}</span>
+            </div>
+          </div>
+        </div>
+      `).join("");
     } catch(error){
-      renderError("habitaciones-lista", error.message, { setClass: false });
+      contenedor.innerHTML = `
+        <div class="empty-state" style="grid-column:1/-1;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <h3>Error al cargar</h3>
+          <p>${error.message}</p>
+        </div>`;
     }
   }
 
   async function crearTipo(e){
     e.preventDefault();
+    const btn = $("btn-tipo");
+    setLoading(btn, true);
     renderLoading("tipo-resultado", "Subiendo imagen...");
 
     let imagenUrl = "";
@@ -220,15 +289,20 @@
       renderData("tipo-resultado", resp);
       $("tipoForm").reset();
       cargarTipos();
+      mostrarToast("Tipo de habitacion agregado", "success");
     } catch(error){
       renderError("tipo-resultado", error.message);
       mostrarToast(error.message, "error");
+    } finally {
+      setLoading(btn, false);
     }
     return false;
   }
 
   async function crearHabitacion(e){
     e.preventDefault();
+    const btn = $("btn-hab");
+    setLoading(btn, true);
     renderLoading("hab-resultado", "Guardando...");
 
     try {
@@ -242,9 +316,12 @@
       renderData("hab-resultado", resp);
       $("habForm").reset();
       cargarHabitaciones();
+      mostrarToast("Habitacion agregada", "success");
     } catch(error){
       renderError("hab-resultado", error.message);
       mostrarToast(error.message, "error");
+    } finally {
+      setLoading(btn, false);
     }
     return false;
   }

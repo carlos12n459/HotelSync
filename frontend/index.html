@@ -25,6 +25,7 @@
       <a href="index.html">Inicio</a>
       <a href="login.html">Iniciar sesion</a>
     </div>
+    <a class="btn" href="login.html">Empezar</a>
   </div>
 </div>
 
@@ -32,11 +33,40 @@
   <div class="hero-inner">
     <h1>Encuentra tu hotel ideal</h1>
     <p>Busca hoteles, habitaciones y reserva tu proxima estadia de forma sencilla.</p>
+    <div class="hero-actions">
+      <a class="btn" href="#explorar">Explorar hoteles</a>
+      <a class="btn btn-secondary" href="login.html">Iniciar sesion</a>
+    </div>
   </div>
 </section>
 
-<main class="container">
+<main class="container" id="explorar">
 
+  <!-- Carrusel destacado -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+      </div>
+      <div class="section-title">
+        <h2>Hoteles destacados</h2>
+        <p>Las mejores opciones seleccionadas para ti</p>
+      </div>
+    </div>
+
+    <div class="carousel" id="carousel-destacados">
+      <div class="carousel-track" id="carousel-track"></div>
+      <button class="carousel-btn prev" onclick="moverCarousel(-1)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      </button>
+      <button class="carousel-btn next" onclick="moverCarousel(1)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </button>
+      <div class="carousel-dots" id="carousel-dots"></div>
+    </div>
+  </div>
+
+  <!-- Busqueda con filtros -->
   <div class="section">
     <div class="section-head">
       <div class="section-icon">
@@ -44,31 +74,107 @@
       </div>
       <div class="section-title">
         <h2>Buscar hoteles</h2>
-        <p>Explora el catalogo de propiedades disponibles</p>
+        <p>Filtra por ciudad, precio, categoria y mas</p>
       </div>
     </div>
-    <div class="grid-3">
-      <div class="field"><label>Ciudad</label><input type="text" id="buscar-ciudad" placeholder="Ej: Bogota, Cartagena" /></div>
-      <div class="field"><label>Check-in</label><input type="date" id="buscar-in" /></div>
-      <div class="field"><label>Check-out</label><input type="date" id="buscar-out" /></div>
-    </div>
-    <div class="btn-group" style="margin-top:16px;">
-      <button class="btn" onclick="buscarHoteles()">Buscar</button>
-      <button class="btn btn-secondary" onclick="limpiarBusqueda()">Limpiar</button>
-    </div>
-  </div>
 
-  <div class="section">
-    <div class="section-head">
-      <div class="section-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-      </div>
-      <div class="section-title">
-        <h2>Resultados</h2>
-        <p>Hoteles disponibles</p>
+    <div class="layout-split">
+      <!-- Filtros colapsables -->
+      <aside class="filter-panel">
+        <div class="filter-group open" id="fg-ciudad">
+          <button class="filter-header" onclick="toggleFilter('fg-ciudad')">
+            <span class="filter-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+              Ciudad
+            </span>
+            <svg class="filter-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="filter-content">
+            <div class="field">
+              <input type="text" id="buscar-ciudad" placeholder="Ej: Bogota, Cartagena" />
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-group open" id="fg-precio">
+          <button class="filter-header" onclick="toggleFilter('fg-precio')">
+            <span class="filter-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+              Precio por noche
+            </span>
+            <svg class="filter-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="filter-content">
+            <div class="filter-price">
+              <div class="field">
+                <label>Min</label>
+                <input type="number" id="precio-min" value="0" min="0" />
+              </div>
+              <span style="color:var(--slate-400);padding-top:22px;">-</span>
+              <div class="field">
+                <label>Max</label>
+                <input type="number" id="precio-max" value="1000000" min="0" />
+              </div>
+            </div>
+            <input type="range" class="filter-slider" id="precio-slider" min="0" max="1000000" step="50000" value="1000000" />
+          </div>
+        </div>
+
+        <div class="filter-group" id="fg-rating">
+          <button class="filter-header" onclick="toggleFilter('fg-rating')">
+            <span class="filter-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              Calificacion
+            </span>
+            <svg class="filter-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="filter-content">
+            <div class="rating" id="filtro-rating">
+              <svg data-value="1" viewBox="0 0 24 24" fill="currentColor" stroke="none" onclick="setRating(1)"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              <svg data-value="2" viewBox="0 0 24 24" fill="currentColor" stroke="none" onclick="setRating(2)"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              <svg data-value="3" viewBox="0 0 24 24" fill="currentColor" stroke="none" onclick="setRating(3)"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              <svg data-value="4" viewBox="0 0 24 24" fill="currentColor" stroke="none" onclick="setRating(4)"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              <svg data-value="5" viewBox="0 0 24 24" fill="currentColor" stroke="none" onclick="setRating(5)"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            </div>
+            <input type="hidden" id="rating-value" value="0" />
+          </div>
+        </div>
+
+        <div class="filter-group" id="fg-categoria">
+          <button class="filter-header" onclick="toggleFilter('fg-categoria')">
+            <span class="filter-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+              Categoria
+            </span>
+            <svg class="filter-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="filter-content">
+            <label class="filter-option"><input type="checkbox" value="estandar" /> Estandar</label>
+            <label class="filter-option"><input type="checkbox" value="suite" /> Suite</label>
+            <label class="filter-option"><input type="checkbox" value="deluxe" /> Deluxe</label>
+            <label class="filter-option"><input type="checkbox" value="familiar" /> Familiar</label>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;">
+          <button class="btn" style="width:100%;" onclick="buscarHoteles()">Aplicar filtros</button>
+          <button class="btn btn-ghost" style="width:100%;margin-top:8px;" onclick="limpiarBusqueda()">Limpiar</button>
+        </div>
+      </aside>
+
+      <!-- Resultados -->
+      <div>
+        <div class="section" style="margin-bottom:18px;padding:18px 22px;">
+          <div class="grid-3" style="align-items:end;">
+            <div class="field"><label>Check-in</label><input type="date" id="buscar-in" /></div>
+            <div class="field"><label>Check-out</label><input type="date" id="buscar-out" /></div>
+            <button class="btn" onclick="buscarHoteles()">Buscar</button>
+          </div>
+        </div>
+
+        <div id="resultados-hoteles" class="card-grid"></div>
       </div>
     </div>
-    <div id="resultados-hoteles" class="card-grid"></div>
   </div>
 
 </main>
@@ -81,28 +187,153 @@
 <script>
   document.addEventListener("DOMContentLoaded", () => {
     inicializarFechas("buscar-in", "buscar-out");
+    cargarDestacados();
     buscarHoteles();
+
+    document.getElementById("precio-slider").addEventListener("input", (e) => {
+      document.getElementById("precio-max").value = e.target.value;
+    });
   });
 
-  async function buscarHoteles(){
-    const contenedor = $("resultados-hoteles");
-    renderLoading("resultados-hoteles", "Cargando hoteles...", { setClass: false });
-    const ciudad = $("buscar-ciudad").value.toLowerCase();
+  let hotelesCache = [];
+  let carouselIndex = 0;
 
+  async function cargarDestacados(){
     try {
       const hoteles = await apiListarHoteles();
-      const filtrados = ciudad ? hoteles.filter(h => h.ciudad.toLowerCase().includes(ciudad)) : hoteles;
-      renderData("resultados-hoteles", filtrados, {
-        setClass: false,
-        emptyMessage: "No se encontraron hoteles."
-      });
+      const destacados = hoteles.slice(0, 5);
+      renderCarousel(destacados);
     } catch(error){
-      renderError("resultados-hoteles", error.message, { setClass: false });
+      console.error("Error cargando destacados", error);
+    }
+  }
+
+  function renderCarousel(hoteles){
+    const track = document.getElementById("carousel-track");
+    const dots = document.getElementById("carousel-dots");
+    if(!track || hoteles.length === 0) return;
+
+    track.innerHTML = hoteles.map((h, i) => `
+      <div class="carousel-slide ${i === 0 ? 'active' : ''}" data-index="${i}">
+        <img src="${h.imagen_url ? API_BASE + h.imagen_url : 'https://www.fffuel.co/images/dddepth-preview/dddepth-248.jpg'}" alt="${h.nombre}" />
+        <div class="slide-caption">
+          <h3>${h.nombre}</h3>
+          <p>${h.ciudad}, ${h.pais}</p>
+        </div>
+      </div>
+    `).join("");
+
+    dots.innerHTML = hoteles.map((_, i) => `
+      <button class="carousel-dot ${i === 0 ? 'active' : ''}" onclick="irCarousel(${i})"></button>
+    `).join("");
+
+    actualizarCarousel();
+  }
+
+  function actualizarCarousel(){
+    const track = document.getElementById("carousel-track");
+    const slides = track.querySelectorAll(".carousel-slide");
+    if(slides.length === 0) return;
+
+    slides.forEach((s, i) => {
+      s.classList.toggle("active", i === carouselIndex);
+    });
+
+    const slideWidth = slides[0].offsetWidth;
+    track.style.transform = `translateX(calc(20% - ${carouselIndex * slideWidth}px))`;
+
+    document.querySelectorAll(".carousel-dot").forEach((d, i) => {
+      d.classList.toggle("active", i === carouselIndex);
+    });
+  }
+
+  function moverCarousel(dir){
+    const slides = document.querySelectorAll(".carousel-slide");
+    if(slides.length === 0) return;
+    carouselIndex = (carouselIndex + dir + slides.length) % slides.length;
+    actualizarCarousel();
+  }
+
+  function irCarousel(index){
+    carouselIndex = index;
+    actualizarCarousel();
+  }
+
+  setInterval(() => {
+    const slides = document.querySelectorAll(".carousel-slide");
+    if(slides.length > 1) moverCarousel(1);
+  }, 5000);
+
+  function toggleFilter(id){
+    document.getElementById(id).classList.toggle("open");
+  }
+
+  function setRating(value){
+    const input = document.getElementById("rating-value");
+    input.value = input.value == value ? 0 : value;
+    document.querySelectorAll("#filtro-rating svg").forEach(s => {
+      const v = parseInt(s.dataset.value);
+      s.classList.toggle("filled", v <= input.value);
+    });
+  }
+
+  async function buscarHoteles(){
+    const contenedor = document.getElementById("resultados-hoteles");
+    contenedor.innerHTML = `<div class="loading-state" style="grid-column:1/-1;"><div class="spinner spinner-lg"></div><span>Buscando hoteles...</span></div>`;
+    const ciudad = document.getElementById("buscar-ciudad").value.toLowerCase();
+    const maxPrecio = Number(document.getElementById("precio-max").value) || Infinity;
+
+    try {
+      hotelesCache = await apiListarHoteles();
+      let filtrados = hotelesCache;
+      if(ciudad) filtrados = filtrados.filter(h => h.ciudad.toLowerCase().includes(ciudad));
+
+      if(filtrados.length === 0){
+        contenedor.innerHTML = `
+          <div class="empty-state" style="grid-column:1/-1;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <h3>No se encontraron hoteles</h3>
+            <p>Prueba con otra ciudad o ajusta los filtros.</p>
+          </div>`;
+        return;
+      }
+
+      contenedor.innerHTML = filtrados.map(h => `
+        <div class="card">
+          <div class="card-img">
+            ${h.imagen_url ? `<img src="${API_BASE}${h.imagen_url}" alt="${h.nombre}" onerror="this.style.display='none'" />` : "Sin imagen"}
+          </div>
+          <div class="card-body">
+            <div class="card-title">${h.nombre}</div>
+            <div class="card-text">${h.ciudad}, ${h.pais}</div>
+            <div class="card-meta">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+              ${h.direccion || "Direccion no disponible"}
+            </div>
+          </div>
+          <div class="card-actions">
+            <a class="btn btn-outline" style="flex:1;" href="login.html">Ver detalles</a>
+          </div>
+        </div>
+      `).join("");
+    } catch(error){
+      contenedor.innerHTML = `
+        <div class="empty-state" style="grid-column:1/-1;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <h3>Error al buscar</h3>
+          <p>${error.message}</p>
+        </div>`;
     }
   }
 
   function limpiarBusqueda(){
-    $("buscar-ciudad").value = "";
+    document.getElementById("buscar-ciudad").value = "";
+    document.getElementById("precio-min").value = 0;
+    document.getElementById("precio-max").value = 1000000;
+    document.getElementById("precio-slider").value = 1000000;
+    document.getElementById("rating-value").value = 0;
+    document.querySelectorAll("#filtro-rating svg").forEach(s => s.classList.remove("filled"));
+    document.querySelectorAll(".filter-option input").forEach(c => c.checked = false);
     buscarHoteles();
   }
 </script>

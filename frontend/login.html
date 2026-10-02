@@ -12,33 +12,34 @@
 
 <div class="auth-wrapper">
   <div class="auth-box">
-    <div class="brand" style="margin-bottom:18px;">
-      <div class="brand-icon" style="width:36px;height:36px;">
+    <div class="brand" style="margin-bottom:22px;justify-content:center;">
+      <div class="brand-icon" style="width:48px;height:48px;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
       </div>
       <div>
-        <div class="brand-name">HotelSync</div>
+        <div class="brand-name" style="font-size:1.25rem;">HotelSync</div>
+        <div class="brand-sub" style="color:var(--slate-500);">Sistema de gestion hotelera</div>
       </div>
     </div>
 
-    <h1 id="authTitle">Iniciar sesion</h1>
-    <p id="authSubtitle">Ingresa tus credenciales para continuar</p>
+    <h1 id="authTitle" style="text-align:center;">Iniciar sesion</h1>
+    <p id="authSubtitle" style="text-align:center;">Ingresa tus credenciales para continuar</p>
 
-    <div class="tabs">
-      <button class="tab active" id="tabLogin" onclick="mostrarLogin()">Login</button>
-      <button class="tab" id="tabRegister" onclick="mostrarRegister()">Registro</button>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" onclick="mostrarLogin()">Login</button>
+      <button class="auth-tab" id="tabRegister" onclick="mostrarRegister()">Registro</button>
     </div>
 
     <form id="loginForm" onsubmit="return handleLogin(event)">
-      <div class="field" style="margin-bottom:14px;">
+      <div class="field" style="margin-bottom:16px;">
         <label>Email</label>
         <input type="email" id="login-email" required placeholder="admin@hotelsync.com" />
       </div>
-      <div class="field" style="margin-bottom:18px;">
+      <div class="field" style="margin-bottom:22px;">
         <label>Password</label>
         <input type="password" id="login-password" required placeholder="admin123" />
       </div>
-      <button class="btn" style="width:100%;">Ingresar</button>
+      <button class="btn" style="width:100%;" id="btn-login">Ingresar</button>
     </form>
 
     <form id="registerForm" class="hidden" onsubmit="return handleRegister(event)">
@@ -54,7 +55,7 @@
         <label>Password</label>
         <input type="password" id="reg-password" required minlength="6" />
       </div>
-      <div class="field" style="margin-bottom:18px;">
+      <div class="field" style="margin-bottom:22px;">
         <label>Rol</label>
         <select id="reg-rol">
           <option value="cliente">Cliente</option>
@@ -62,7 +63,7 @@
           <option value="empleado">Empleado</option>
         </select>
       </div>
-      <button class="btn" style="width:100%;">Crear cuenta</button>
+      <button class="btn" style="width:100%;" id="btn-register">Crear cuenta</button>
     </form>
 
     <div class="auth-links">
@@ -77,8 +78,17 @@
 <script src="js/api.js"></script>
 <script src="js/auth.js"></script>
 <script>
-  // Si ya hay sesion, redirigir al dashboard correspondiente.
   manejarAuthRedirect();
+
+  function setLoading(btn, loading){
+    if(loading){
+      btn.disabled = true;
+      btn.innerHTML = `<div class="spinner spinner-sm"></div><span>Procesando...</span>`;
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = btn.id === 'btn-login' ? 'Ingresar' : 'Crear cuenta';
+    }
+  }
 
   function mostrarLogin(){
     $("loginForm").classList.remove("hidden");
@@ -100,6 +110,8 @@
 
   async function handleLogin(e){
     e.preventDefault();
+    const btn = $("btn-login");
+    setLoading(btn, true);
     const email = $("login-email").value;
     const password = $("login-password").value;
     try {
@@ -107,6 +119,7 @@
       mostrarToast("Bienvenido, " + usuario.nombre, "success");
       setTimeout(() => redirigirPorRol(usuario.rol), 800);
     } catch(error){
+      setLoading(btn, false);
       mostrarToast(error.message, "error");
     }
     return false;
@@ -114,6 +127,8 @@
 
   async function handleRegister(e){
     e.preventDefault();
+    const btn = $("btn-register");
+    setLoading(btn, true);
     const nombre = $("reg-nombre").value;
     const email = $("reg-email").value;
     const password = $("reg-password").value;
@@ -123,6 +138,7 @@
       mostrarToast("Cuenta creada. Bienvenido, " + usuario.nombre, "success");
       setTimeout(() => redirigirPorRol(usuario.rol), 800);
     } catch(error){
+      setLoading(btn, false);
       mostrarToast(error.message, "error");
     }
     return false;
