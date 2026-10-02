@@ -1,7 +1,7 @@
 {
-  "name": "api-gateway",
-  "version": "1.1.0",
-  "description": "API Gateway de HotelSync",
+  "name": "servicio-archivos",
+  "version": "1.0.0",
+  "description": "Microservicio de gestion de archivos e imagenes de HotelSync",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
@@ -12,7 +12,6 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "http-proxy-middleware": "^3.0.0",
-    "jsonwebtoken": "^9.0.2"
+    "multer": "^1.4.5-lts.1"
   }
 }

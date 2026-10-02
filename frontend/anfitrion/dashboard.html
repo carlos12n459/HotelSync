@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HotelSync — Panel del anfitrion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/main.css" />
+</head>
+<body>
+
+<div class="topbar">
+  <a href="dashboard.html" class="brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+    </div>
+    <div>
+      <div class="brand-name">HotelSync</div>
+      <div class="brand-sub">Panel del anfitrion</div>
+    </div>
+  </a>
+  <div class="topbar-actions">
+    <div class="nav-links">
+      <a href="dashboard.html">Mis hoteles</a>
+      <a href="hoteles.html">Gestionar hoteles</a>
+      <a href="habitaciones.html">Habitaciones</a>
+    </div>
+    <div class="user-pill" id="userPill"></div>
+    <button class="btn btn-secondary" style="padding:6px 12px;font-size:0.8rem;" onclick="logout()">Salir</button>
+  </div>
+</div>
+
+<main class="container">
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+      </div>
+      <div class="section-title">
+        <h2>Mis hoteles</h2>
+        <p>Hoteles que administras como anfitrion</p>
+      </div>
+    </div>
+    <div id="mis-hoteles" class="card-grid"></div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"><span id="toastMsg">Mensaje</span></div>
+
+<script src="../js/utils.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+  protegerRol(["anfitrion"]);
+  renderizarUsuario();
+
+  document.addEventListener("DOMContentLoaded", cargarMisHoteles);
+
+  async function cargarMisHoteles(){
+    const contenedor = $("mis-hoteles");
+    contenedor.innerHTML = "<p style='color:var(--slate-500)'>Cargando...</p>";
+
+    try {
+      const hoteles = await apiListarHotelesMios();
+      if(hoteles.length === 0){
+        contenedor.innerHTML = `<p style='color:var(--slate-500)'>No tienes hoteles registrados. <a href="hoteles.html" style="color:var(--sky-700);font-weight:600;">Crea el primero</a>.</p>`;
+        return;
+      }
+
+      contenedor.innerHTML = hoteles.map(h => `
+        <div class="card">
+          <div class="card-img">
+            ${h.imagen_url ? `<img src="${API_BASE}${h.imagen_url}" alt="${h.nombre}" onerror="this.style.display='none'" />` : "Sin imagen"}
+          </div>
+          <div class="card-body">
+            <div class="card-title">${h.nombre}</div>
+            <div class="card-text">${h.ciudad}, ${h.pais}</div>
+            <div class="card-text">${h.direccion || ""}</div>
+            <div class="card-text">Estado: ${h.activo ? "Activo" : "Inactivo"}</div>
+          </div>
+          <div class="card-actions">
+            <a class="btn btn-outline" style="flex:1;" href="habitaciones.html?hotel_id=${h.id}">Habitaciones</a>
+          </div>
+        </div>
+      `).join("");
+    } catch(error){
+      contenedor.innerHTML = `<p style="color:#991b1b">${error.message}</p>`;
+    }
+  }
+</script>
+</body>
+</html>

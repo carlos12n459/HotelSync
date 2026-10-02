@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HotelSync — Gestionar hoteles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/main.css" />
+</head>
+<body>
+
+<div class="topbar">
+  <a href="dashboard.html" class="brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+    </div>
+    <div>
+      <div class="brand-name">HotelSync</div>
+      <div class="brand-sub">Panel del anfitrion</div>
+    </div>
+  </a>
+  <div class="topbar-actions">
+    <div class="nav-links">
+      <a href="dashboard.html">Mis hoteles</a>
+      <a href="hoteles.html">Gestionar hoteles</a>
+      <a href="habitaciones.html">Habitaciones</a>
+    </div>
+    <div class="user-pill" id="userPill"></div>
+    <button class="btn btn-secondary" style="padding:6px 12px;font-size:0.8rem;" onclick="logout()">Salir</button>
+  </div>
+</div>
+
+<main class="container">
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+      </div>
+      <div class="section-title">
+        <h2>Crear nuevo hotel</h2>
+        <p>Completa los datos y sube una imagen principal</p>
+      </div>
+    </div>
+    <form id="hotelForm" onsubmit="return crearHotel(event)">
+      <div class="grid-2">
+        <div class="field"><label>Nombre</label><input type="text" id="h-nombre" required /></div>
+        <div class="field"><label>Ciudad</label><input type="text" id="h-ciudad" required /></div>
+        <div class="field"><label>Pais</label><input type="text" id="h-pais" value="Colombia" required /></div>
+        <div class="field"><label>Zona horaria</label><input type="text" id="h-timezone" value="America/Bogota" /></div>
+        <div class="field" style="grid-column:1 / -1;"><label>Direccion</label><input type="text" id="h-direccion" /></div>
+        <div class="field" style="grid-column:1 / -1;">
+          <label>Imagen principal</label>
+          <input type="file" id="h-imagen" accept="image/*" />
+          <small style="color:var(--slate-500);">Formatos: JPG, PNG, WEBP, GIF. Maximo 5 MB.</small>
+        </div>
+      </div>
+      <div class="btn-group" style="margin-top:18px;">
+        <button class="btn btn-success" type="submit">Crear hotel</button>
+      </div>
+    </form>
+    <pre id="hotel-resultado" class="result hidden"></pre>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+      </div>
+      <div class="section-title">
+        <h2>Mis hoteles</h2>
+      </div>
+    </div>
+    <div id="lista-hoteles" class="card-grid"></div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"><span id="toastMsg">Mensaje</span></div>
+
+<script src="../js/utils.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+  protegerRol(["anfitrion"]);
+  renderizarUsuario();
+
+  document.addEventListener("DOMContentLoaded", cargarHoteles);
+
+  async function crearHotel(e){
+    e.preventDefault();
+    const resEl = $("hotel-resultado");
+    resEl.classList.remove("hidden", "error", "success");
+    resEl.classList.add("loading");
+    resEl.textContent = "Subiendo imagen...";
+
+    let imagenUrl = "";
+    const archivo = $("h-imagen").files[0];
+
+    try {
+      if(archivo){
+        const formData = new FormData();
+        formData.append("archivo", archivo);
+        const uploadResp = await apiSubirArchivo(formData);
+        imagenUrl = uploadResp.url;
+        resEl.textContent = "Imagen subida. Creando hotel...";
+      }
+
+      const body = {
+        nombre: $("h-nombre").value,
+        ciudad: $("h-ciudad").value,
+        pais: $("h-pais").value,
+        timezone: $("h-timezone").value || "America/Bogota",
+        direccion: $("h-direccion").value,
+        imagen_url: imagenUrl
+      };
+
+      const resp = await apiCrearHotel(body);
+      resEl.classList.remove("loading");
+      resEl.classList.add("success");
+      resEl.textContent = JSON.stringify(resp, null, 2);
+      mostrarToast("Hotel creado correctamente", "success");
+      $("hotelForm").reset();
+      cargarHoteles();
+    } catch(error){
+      resEl.classList.remove("loading");
+      resEl.classList.add("error");
+      resEl.textContent = error.message;
+      mostrarToast(error.message, "error");
+    }
+
+    return false;
+  }
+
+  async function cargarHoteles(){
+    const contenedor = $("lista-hoteles");
+    contenedor.innerHTML = "<p style='color:var(--slate-500)'>Cargando...</p>";
+
+    try {
+      const hoteles = await apiListarHotelesMios();
+      if(hoteles.length === 0){
+        contenedor.innerHTML = "<p style='color:var(--slate-500)'>No tienes hoteles registrados.</p>";
+        return;
+      }
+
+      contenedor.innerHTML = hoteles.map(h => `
+        <div class="card">
+          <div class="card-img">
+            ${h.imagen_url ? `<img src="${API_BASE}${h.imagen_url}" alt="${h.nombre}" onerror="this.style.display='none'" />` : "Sin imagen"}
+          </div>
+          <div class="card-body">
+            <div class="card-title">${h.nombre}</div>
+            <div class="card-text">${h.ciudad}, ${h.pais}</div>
+            <div class="card-text">${h.direccion || ""}</div>
+          </div>
+          <div class="card-actions">
+            <a class="btn btn-outline" style="flex:1;" href="habitaciones.html?hotel_id=${h.id}">Gestionar</a>
+          </div>
+        </div>
+      `).join("");
+    } catch(error){
+      contenedor.innerHTML = `<p style="color:#991b1b">${error.message}</p>`;
+    }
+  }
+</script>
+</body>
+</html>

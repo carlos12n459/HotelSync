@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HotelSync — Mis reservas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/main.css" />
+</head>
+<body>
+
+<div class="topbar">
+  <a href="dashboard.html" class="brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+    </div>
+    <div>
+      <div class="brand-name">HotelSync</div>
+      <div class="brand-sub">Panel del huesped</div>
+    </div>
+  </a>
+  <div class="topbar-actions">
+    <div class="nav-links">
+      <a href="dashboard.html">Buscar</a>
+      <a href="reservas.html">Mis reservas</a>
+    </div>
+    <div class="user-pill" id="userPill"></div>
+    <button class="btn btn-secondary" style="padding:6px 12px;font-size:0.8rem;" onclick="logout()">Salir</button>
+  </div>
+</div>
+
+<main class="container">
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+      </div>
+      <div class="section-title">
+        <h2>Mis reservas</h2>
+        <p>Historial de reservas realizadas</p>
+      </div>
+    </div>
+    <div id="reservas-lista" class="card-grid"></div>
+  </div>
+</main>
+
+<div class="toast" id="toast"><span id="toastMsg">Mensaje</span></div>
+
+<script src="../js/utils.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+  protegerRol(["huesped"]);
+  renderizarUsuario();
+
+  document.addEventListener("DOMContentLoaded", cargarReservas);
+
+  async function cargarReservas(){
+    const contenedor = $("reservas-lista");
+    contenedor.innerHTML = "<p style='color:var(--slate-500)'>Cargando...</p>";
+
+    try {
+      const reservas = await apiMisReservas();
+      if(reservas.length === 0){
+        contenedor.innerHTML = "<p style='color:var(--slate-500)'>Aun no tienes reservas.</p>";
+        return;
+      }
+
+      contenedor.innerHTML = reservas.map(r => `
+        <div class="card">
+          <div class="card-body">
+            <div class="card-title">Reserva #${r.id}</div>
+            <div class="card-text">Hotel ID: ${r.hotel_id}</div>
+            <div class="card-text">Entrada: ${formatearFecha(r.fecha_checkin)} — Salida: ${formatearFecha(r.fecha_checkout)}</div>
+            <div class="card-text">Total: ${formatearPrecio(r.monto_total)}</div>
+            <div class="card-text">Estado: <strong>${r.estado}</strong></div>
+          </div>
+          <div class="card-actions">
+            ${r.estado === "confirmada" ? `<button class="btn btn-danger" style="flex:1;" onclick="cancelarReserva(${r.id})">Cancelar</button>` : ""}
+          </div>
+        </div>
+      `).join("");
+    } catch(error){
+      contenedor.innerHTML = `<p style="color:#991b1b">${error.message}</p>`;
+    }
+  }
+
+  async function cancelarReserva(id){
+    if(!confirm("¿Seguro que deseas cancelar esta reserva?")) return;
+    try {
+      await apiCancelarReserva(id);
+      mostrarToast("Reserva cancelada", "success");
+      cargarReservas();
+    } catch(error){
+      mostrarToast(error.message, "error");
+    }
+  }
+</script>
+</body>
+</html>

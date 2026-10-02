@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HotelSync — Reserva tu estadia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/main.css" />
+</head>
+<body>
+
+<div class="topbar">
+  <a href="index.html" class="brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+    </div>
+    <div>
+      <div class="brand-name">HotelSync</div>
+      <div class="brand-sub">Reservas</div>
+    </div>
+  </a>
+  <div class="topbar-actions">
+    <div class="nav-links">
+      <a href="index.html">Inicio</a>
+      <a href="login.html">Iniciar sesion</a>
+    </div>
+  </div>
+</div>
+
+<section class="hero">
+  <div class="hero-inner">
+    <h1>Encuentra tu hotel ideal</h1>
+    <p>Busca hoteles, habitaciones y reserva tu proxima estadia de forma sencilla.</p>
+  </div>
+</section>
+
+<main class="container">
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      </div>
+      <div class="section-title">
+        <h2>Buscar hoteles</h2>
+        <p>Explora el catalogo de propiedades disponibles</p>
+      </div>
+    </div>
+    <div class="grid-3">
+      <div class="field"><label>Ciudad</label><input type="text" id="buscar-ciudad" placeholder="Ej: Bogota, Cartagena" /></div>
+      <div class="field"><label>Check-in</label><input type="date" id="buscar-in" /></div>
+      <div class="field"><label>Check-out</label><input type="date" id="buscar-out" /></div>
+    </div>
+    <div class="btn-group" style="margin-top:16px;">
+      <button class="btn" onclick="buscarHoteles()">Buscar</button>
+      <button class="btn btn-secondary" onclick="limpiarBusqueda()">Limpiar</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+      </div>
+      <div class="section-title">
+        <h2>Resultados</h2>
+        <p>Hoteles disponibles</p>
+      </div>
+    </div>
+    <div id="resultados-hoteles" class="card-grid"></div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"><span id="toastMsg">Mensaje</span></div>
+
+<script src="js/utils.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    inicializarFechas("buscar-in", "buscar-out");
+    buscarHoteles();
+  });
+
+  async function buscarHoteles(){
+    const contenedor = $("resultados-hoteles");
+    contenedor.innerHTML = "<p style='color:var(--slate-500)'>Cargando hoteles...</p>";
+    const ciudad = $("buscar-ciudad").value.toLowerCase();
+
+    try {
+      const hoteles = await apiListarHoteles();
+      const filtrados = ciudad ? hoteles.filter(h => h.ciudad.toLowerCase().includes(ciudad)) : hoteles;
+
+      if(filtrados.length === 0){
+        contenedor.innerHTML = "<p style='color:var(--slate-500)'>No se encontraron hoteles.</p>";
+        return;
+      }
+
+      contenedor.innerHTML = filtrados.map(h => `
+        <div class="card">
+          <div class="card-img">
+            ${h.imagen_url ? `<img src="${API_BASE}${h.imagen_url}" alt="${h.nombre}" onerror="this.style.display='none'" />` : "Sin imagen"}
+          </div>
+          <div class="card-body">
+            <div class="card-title">${h.nombre}</div>
+            <div class="card-text">${h.ciudad}, ${h.pais}</div>
+            <div class="card-text">${h.direccion || ""}</div>
+          </div>
+          <div class="card-actions">
+            <a class="btn btn-outline" href="login.html" style="flex:1;">Reservar</a>
+          </div>
+        </div>
+      `).join("");
+    } catch(error){
+      contenedor.innerHTML = `<p style="color:#991b1b">${error.message}</p>`;
+    }
+  }
+
+  function limpiarBusqueda(){
+    $("buscar-ciudad").value = "";
+    buscarHoteles();
+  }
+</script>
+</body>
+</html>

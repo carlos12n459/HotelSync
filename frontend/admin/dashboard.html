@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HotelSync — Panel de administracion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/main.css" />
+</head>
+<body>
+
+<div class="topbar">
+  <a href="dashboard.html" class="brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+    </div>
+    <div>
+      <div class="brand-name">HotelSync</div>
+      <div class="brand-sub">Panel de administracion</div>
+    </div>
+  </a>
+  <div class="topbar-actions">
+    <div class="nav-links">
+      <a href="dashboard.html">Admin</a>
+    </div>
+    <div class="user-pill" id="userPill"></div>
+    <button class="btn btn-secondary" style="padding:6px 12px;font-size:0.8rem;" onclick="logout()">Salir</button>
+  </div>
+</div>
+
+<main class="container">
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+      </div>
+      <div class="section-title">
+        <h2>Gestion de usuarios</h2>
+        <p>Cambiar roles de los usuarios del sistema</p>
+      </div>
+    </div>
+    <div class="grid-3">
+      <div class="field"><label>ID del usuario</label><input type="number" id="usr-id" /></div>
+      <div class="field"><label>Nuevo rol</label>
+        <select id="usr-rol">
+          <option value="admin">admin</option>
+          <option value="anfitrion">anfitrion</option>
+          <option value="empleado">empleado</option>
+          <option value="huesped">huesped</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-group" style="margin-top:14px;">
+      <button class="btn" onclick="cambiarRol()">Cambiar rol</button>
+      <button class="btn btn-secondary" onclick="consultarUsuario()">Consultar usuario</button>
+    </div>
+    <pre id="usr-resultado" class="result hidden"></pre>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+      </div>
+      <div class="section-title">
+        <h2>Todas las propiedades</h2>
+        <p>Vista global de hoteles registrados</p>
+      </div>
+    </div>
+    <div class="btn-group" style="margin-bottom:16px;">
+      <button class="btn" onclick="cargarHoteles()">Cargar hoteles</button>
+      <button class="btn btn-secondary" onclick="cargarReservas()">Cargar reservas</button>
+    </div>
+    <div id="admin-lista" class="card-grid"></div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"><span id="toastMsg">Mensaje</span></div>
+
+<script src="../js/utils.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+  protegerRol(["admin"]);
+  renderizarUsuario();
+
+  async function cambiarRol(){
+    const resEl = $("usr-resultado");
+    resEl.classList.remove("hidden", "error", "success");
+    resEl.classList.add("loading");
+    try {
+      const resp = await apiRequest(`/usuarios/usuarios/${$("usr-id").value}/rol`, {
+        method: "PATCH",
+        body: JSON.stringify({ rol: $("usr-rol").value })
+      });
+      mostrarResultado(resEl, resp);
+    } catch(error){
+      mostrarError(resEl, error.message);
+    }
+  }
+
+  async function consultarUsuario(){
+    const resEl = $("usr-resultado");
+    resEl.classList.remove("hidden", "error", "success");
+    resEl.classList.add("loading");
+    try {
+      const resp = await apiRequest(`/usuarios/usuarios/${$("usr-id").value}`, { method: "GET" });
+      mostrarResultado(resEl, resp);
+    } catch(error){
+      mostrarError(resEl, error.message);
+    }
+  }
+
+  async function cargarHoteles(){
+    const contenedor = $("admin-lista");
+    contenedor.innerHTML = "<p style='color:var(--slate-500)'>Cargando...</p>";
+    try {
+      const hoteles = await apiListarHoteles();
+      contenedor.innerHTML = hoteles.map(h => `
+        <div class="card">
+          <div class="card-img">
+            ${h.imagen_url ? `<img src="${API_BASE}${h.imagen_url}" alt="${h.nombre}" onerror="this.style.display='none'" />` : "Sin imagen"}
+          </div>
+          <div class="card-body">
+            <div class="card-title">${h.nombre}</div>
+            <div class="card-text">${h.ciudad}, ${h.pais}</div>
+            <div class="card-text">Owner ID: ${h.owner_id || "N/A"}</div>
+          </div>
+        </div>
+      `).join("");
+    } catch(error){
+      contenedor.innerHTML = `<p style="color:#991b1b">${error.message}</p>`;
+    }
+  }
+
+  async function cargarReservas(){
+    const contenedor = $("admin-lista");
+    contenedor.innerHTML = "<p style='color:var(--slate-500)'>Cargando...</p>";
+    try {
+      const reservas = await apiListarReservas();
+      contenedor.innerHTML = reservas.map(r => `
+        <div class="card">
+          <div class="card-body">
+            <div class="card-title">Reserva #${r.id}</div>
+            <div class="card-text">Hotel: ${r.hotel_id} | Tipo: ${r.tipo_habitacion_id}</div>
+            <div class="card-text">Usuario: ${r.usuario_id || "N/A"}</div>
+            <div class="card-text">Estado: ${r.estado}</div>
+          </div>
+        </div>
+      `).join("");
+    } catch(error){
+      contenedor.innerHTML = `<p style="color:#991b1b">${error.message}</p>`;
+    }
+  }
+
+  function mostrarResultado(el, datos){
+    el.classList.remove("loading");
+    el.classList.add("success");
+    el.textContent = JSON.stringify(datos, null, 2);
+  }
+
+  function mostrarError(el, mensaje){
+    el.classList.remove("loading");
+    el.classList.add("error");
+    el.textContent = mensaje;
+    mostrarToast(mensaje, "error");
+  }
+</script>
+</body>
+</html>

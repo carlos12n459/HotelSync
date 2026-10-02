@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HotelSync — Panel del huesped</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/main.css" />
+</head>
+<body>
+
+<div class="topbar">
+  <a href="dashboard.html" class="brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+    </div>
+    <div>
+      <div class="brand-name">HotelSync</div>
+      <div class="brand-sub">Panel del huesped</div>
+    </div>
+  </a>
+  <div class="topbar-actions">
+    <div class="nav-links">
+      <a href="dashboard.html">Buscar</a>
+      <a href="reservas.html">Mis reservas</a>
+    </div>
+    <div class="user-pill" id="userPill"></div>
+    <button class="btn btn-secondary" style="padding:6px 12px;font-size:0.8rem;" onclick="logout()">Salir</button>
+  </div>
+</div>
+
+<main class="container">
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      </div>
+      <div class="section-title">
+        <h2>Buscar hoteles</h2>
+        <p>Encuentra y reserva tu proxima estadia</p>
+      </div>
+    </div>
+    <div class="grid-3">
+      <div class="field"><label>Ciudad</label><input type="text" id="buscar-ciudad" placeholder="Ej: Bogota" /></div>
+      <div class="field"><label>Check-in</label><input type="date" id="buscar-in" /></div>
+      <div class="field"><label>Check-out</label><input type="date" id="buscar-out" /></div>
+    </div>
+    <div class="btn-group" style="margin-top:16px;">
+      <button class="btn" onclick="buscarHoteles()">Buscar</button>
+      <button class="btn btn-secondary" onclick="limpiarBusqueda()">Limpiar</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+      </div>
+      <div class="section-title">
+        <h2>Hoteles disponibles</h2>
+      </div>
+    </div>
+    <div id="resultados-hoteles" class="card-grid"></div>
+  </div>
+
+</main>
+
+<!-- Modal de reserva -->
+<div id="modalReserva" class="hidden" style="position:fixed;inset:0;background:rgba(15,23,42,0.5);z-index:80;display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:18px;padding:28px;max-width:480px;width:100%;max-height:90vh;overflow:auto;">
+    <h2 style="margin-bottom:16px;">Crear reserva</h2>
+    <div class="grid-2">
+      <div class="field"><label>Nombre huesped</label><input type="text" id="res-nombre" /></div>
+      <div class="field"><label>Email huesped</label><input type="email" id="res-email" /></div>
+      <div class="field"><label>Check-in</label><input type="date" id="res-in" /></div>
+      <div class="field"><label>Check-out</label><input type="date" id="res-out" /></div>
+      <div class="field"><label>Tipo de habitacion</label><select id="res-tipo"></select></div>
+      <div class="field"><label>Monto total</label><input type="number" id="res-monto" /></div>
+    </div>
+    <input type="hidden" id="res-hotel" />
+    <div class="btn-group" style="margin-top:20px;justify-content:flex-end;">
+      <button class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn btn-success" onclick="crearReserva()">Confirmar reserva</button>
+    </div>
+    <pre id="res-resultado" class="result hidden"></pre>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toastMsg">Mensaje</span></div>
+
+<script src="../js/utils.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+  // Proteger ruta para huespedes.
+  protegerRol(["huesped"]);
+  renderizarUsuario();
+
+  let hotelesCache = [];
+  let tiposCache = [];
+
+  document.addEventListener("DOMContentLoaded", () => {
+    inicializarFechas("buscar-in", "buscar-out");
+    const usuario = obtenerUsuario();
+    if(usuario){
+      $("res-nombre").value = usuario.nombre;
+      $("res-email").value = usuario.email;
+    }
+    buscarHoteles();
+  });
+
+  async function buscarHoteles(){
+    const contenedor = $("resultados-hoteles");
+    contenedor.innerHTML = "<p style='color:var(--slate-500)'>Cargando...</p>";
+    const ciudad = $("buscar-ciudad").value.toLowerCase();
+
+    try {
+      hotelesCache = await apiListarHoteles();
+      const filtrados = ciudad ? hotelesCache.filter(h => h.ciudad.toLowerCase().includes(ciudad)) : hotelesCache;
+
+      if(filtrados.length === 0){
+        contenedor.innerHTML = "<p style='color:var(--slate-500)'>No se encontraron hoteles.</p>";
+        return;
+      }
+
+      contenedor.innerHTML = filtrados.map(h => `
+        <div class="card">
+          <div class="card-img">
+            ${h.imagen_url ? `<img src="${API_BASE}${h.imagen_url}" alt="${h.nombre}" onerror="this.style.display='none'" />` : "Sin imagen"}
+          </div>
+          <div class="card-body">
+            <div class="card-title">${h.nombre}</div>
+            <div class="card-text">${h.ciudad}, ${h.pais}</div>
+            <div class="card-text">${h.direccion || ""}</div>
+          </div>
+          <div class="card-actions">
+            <button class="btn" style="flex:1;" onclick="abrirModal(${h.id})">Reservar</button>
+          </div>
+        </div>
+      `).join("");
+    } catch(error){
+      contenedor.innerHTML = `<p style="color:#991b1b">${error.message}</p>`;
+    }
+  }
+
+  function limpiarBusqueda(){
+    $("buscar-ciudad").value = "";
+    buscarHoteles();
+  }
+
+  async function abrirModal(hotelId){
+    const hotel = hotelesCache.find(h => h.id === hotelId);
+    if(!hotel) return;
+
+    $("res-hotel").value = hotelId;
+    $("res-resultado").classList.add("hidden");
+
+    // Cargar tipos de habitacion del hotel.
+    const select = $("res-tipo");
+    select.innerHTML = "<option value=''>Cargando...</option>";
+    try {
+      tiposCache = await apiListarTiposHabitacion(hotelId);
+      select.innerHTML = tiposCache.map(t => `<option value="${t.id}" data-tarifa="${t.tarifa_base}">${t.nombre} - ${formatearPrecio(t.tarifa_base)}</option>`).join("");
+      calcularMonto();
+    } catch(error){
+      mostrarToast(error.message, "error");
+    }
+
+    $("modalReserva").classList.remove("hidden");
+  }
+
+  function cerrarModal(){
+    $("modalReserva").classList.add("hidden");
+  }
+
+  function calcularMonto(){
+    const tipoId = Number($("res-tipo").value);
+    const tipo = tiposCache.find(t => t.id === tipoId);
+    const entrada = new Date($("res-in").value);
+    const salida = new Date($("res-out").value);
+    if(!tipo || isNaN(entrada) || isNaN(salida) || salida <= entrada){
+      $("res-monto").value = "";
+      return;
+    }
+    const noches = Math.ceil((salida - entrada) / (1000 * 60 * 60 * 24));
+    $("res-monto").value = tipo.tarifa_base * noches;
+  }
+
+  $("res-tipo").addEventListener("change", calcularMonto);
+  $("res-in").addEventListener("change", calcularMonto);
+  $("res-out").addEventListener("change", calcularMonto);
+
+  async function crearReserva(){
+    const body = {
+      hotel_id: Number($("res-hotel").value),
+      tipo_habitacion_id: Number($("res-tipo").value),
+      nombre_huesped: $("res-nombre").value,
+      email_huesped: $("res-email").value,
+      fecha_checkin: $("res-in").value,
+      fecha_checkout: $("res-out").value,
+      monto_total: Number($("res-monto").value),
+      canal: "directo"
+    };
+
+    const resEl = $("res-resultado");
+    resEl.classList.remove("hidden", "error", "success");
+    resEl.classList.add("loading");
+    resEl.textContent = "Procesando...";
+
+    try {
+      const resp = await apiCrearReserva(body);
+      resEl.classList.remove("loading");
+      resEl.classList.add("success");
+      resEl.textContent = JSON.stringify(resp, null, 2);
+      mostrarToast("Reserva creada con exito", "success");
+    } catch(error){
+      resEl.classList.remove("loading");
+      resEl.classList.add("error");
+      resEl.textContent = error.message;
+    }
+  }
+</script>
+</body>
+</html>

@@ -41,5 +41,9 @@ WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'recepcion_db')\gexec
 SELECT 'CREATE DATABASE housekeeping_db OWNER hotelsync_app'
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'housekeeping_db')\gexec
 
+-- Base de datos para el nuevo servicio de usuarios.
+SELECT 'CREATE DATABASE usuarios_db OWNER hotelsync_app'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'usuarios_db')\gexec
+
 -- Asegurar permisos de conexion y creacion (el OWNER ya tiene privilegios sobre cada base).
 ALTER USER hotelsync_app CREATEDB;

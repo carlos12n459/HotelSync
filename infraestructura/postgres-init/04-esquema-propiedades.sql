@@ -3,18 +3,23 @@ GRANT ALL ON SCHEMA public TO hotelsync_app;
 SET ROLE hotelsync_app;
 
 -- Catalogo maestro de hoteles de la cadena.
+-- owner_id: referencia al usuario anfitrion que administra el hotel.
+-- imagen_url: URL de la imagen principal del hotel.
 CREATE TABLE IF NOT EXISTS hoteles (
   id          SERIAL PRIMARY KEY,
+  owner_id    INTEGER NULL,
   nombre      VARCHAR(150) NOT NULL,
   ciudad      VARCHAR(100) NOT NULL,
   pais        VARCHAR(100) NOT NULL,
   timezone    VARCHAR(50) NOT NULL DEFAULT 'America/Bogota',
   direccion   VARCHAR(255) NULL,
+  imagen_url  VARCHAR(500) NULL,
   activo      BOOLEAN NOT NULL DEFAULT TRUE,
   creado_en   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Tipos de habitacion por hotel (catalogo maestro).
+-- imagen_url: URL de la imagen representativa del tipo de habitacion.
 CREATE TABLE IF NOT EXISTS tipos_habitacion (
   id            SERIAL PRIMARY KEY,
   hotel_id      INTEGER NOT NULL,
@@ -23,6 +28,7 @@ CREATE TABLE IF NOT EXISTS tipos_habitacion (
   tarifa_base   DECIMAL(10,2) NOT NULL,
   amenities     JSONB NULL,
   politica_cancelacion TEXT NULL,
+  imagen_url    VARCHAR(500) NULL,
   creado_en     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   CONSTRAINT fk_tipos_habitacion_hotel
@@ -51,19 +57,24 @@ CREATE TABLE IF NOT EXISTS habitaciones (
   CONSTRAINT unico_hotel_numero UNIQUE (hotel_id, numero)
 );
 
--- Datos semilla.
-INSERT INTO hoteles (id, nombre, ciudad, pais, timezone) VALUES
-  (1, 'HotelSync Centro', 'Bogota', 'Colombia', 'America/Bogota'),
-  (2, 'HotelSync Playa', 'Cartagena', 'Colombia', 'America/Bogota')
-ON CONFLICT (id) DO UPDATE SET nombre = EXCLUDED.nombre;
+-- Datos semilla: se asignan al admin/usuario demo con owner_id = 1.
+INSERT INTO hoteles (id, owner_id, nombre, ciudad, pais, timezone, imagen_url) VALUES
+  (1, 1, 'HotelSync Centro', 'Bogota', 'Colombia', 'America/Bogota', '/archivos/hotel-centro.jpg'),
+  (2, 1, 'HotelSync Playa', 'Cartagena', 'Colombia', 'America/Bogota', '/archivos/hotel-playa.jpg')
+ON CONFLICT (id) DO UPDATE SET
+  nombre = EXCLUDED.nombre,
+  owner_id = EXCLUDED.owner_id,
+  imagen_url = EXCLUDED.imagen_url;
 
 SELECT setval(pg_get_serial_sequence('hoteles', 'id'), COALESCE((SELECT MAX(id) FROM hoteles), 1));
 
-INSERT INTO tipos_habitacion (id, hotel_id, nombre, capacidad, tarifa_base, amenities) VALUES
-  (1, 1, 'Habitacion Estandar', 2, 180000.00, '["wifi", "tv", "desayuno"]'::jsonb),
-  (2, 1, 'Habitacion Doble Vista al Mar', 2, 260000.00, '["wifi", "tv", "balcon"]'::jsonb),
-  (3, 2, 'Suite Junior', 3, 350000.00, '["wifi", "tv", "minibar", "jacuzzi"]'::jsonb)
-ON CONFLICT (id) DO UPDATE SET nombre = EXCLUDED.nombre;
+INSERT INTO tipos_habitacion (id, hotel_id, nombre, capacidad, tarifa_base, amenities, imagen_url) VALUES
+  (1, 1, 'Habitacion Estandar', 2, 180000.00, '["wifi", "tv", "desayuno"]'::jsonb, '/archivos/habitacion-estandar.jpg'),
+  (2, 1, 'Habitacion Doble Vista al Mar', 2, 260000.00, '["wifi", "tv", "balcon"]'::jsonb, '/archivos/habitacion-doble.jpg'),
+  (3, 2, 'Suite Junior', 3, 350000.00, '["wifi", "tv", "minibar", "jacuzzi"]'::jsonb, '/archivos/suite-junior.jpg')
+ON CONFLICT (id) DO UPDATE SET
+  nombre = EXCLUDED.nombre,
+  imagen_url = EXCLUDED.imagen_url;
 
 SELECT setval(pg_get_serial_sequence('tipos_habitacion', 'id'), COALESCE((SELECT MAX(id) FROM tipos_habitacion), 1));
 

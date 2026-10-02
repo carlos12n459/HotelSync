@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HotelSync — Panel del empleado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/main.css" />
+</head>
+<body>
+
+<div class="topbar">
+  <a href="dashboard.html" class="brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+    </div>
+    <div>
+      <div class="brand-name">HotelSync</div>
+      <div class="brand-sub">Panel del empleado</div>
+    </div>
+  </a>
+  <div class="topbar-actions">
+    <div class="nav-links">
+      <a href="dashboard.html">Operaciones</a>
+    </div>
+    <div class="user-pill" id="userPill"></div>
+    <button class="btn btn-secondary" style="padding:6px 12px;font-size:0.8rem;" onclick="logout()">Salir</button>
+  </div>
+</div>
+
+<main class="container">
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+      </div>
+      <div class="section-title">
+        <h2>Recepcion</h2>
+        <p>Check-in, check-out y llegadas del dia</p>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" id="tabCheckin" onclick="mostrarTab('checkin')">Check-in</button>
+      <button class="tab" id="tabCheckout" onclick="mostrarTab('checkout')">Checkout</button>
+      <button class="tab" id="tabLlegadas" onclick="mostrarTab('llegadas')">Llegadas</button>
+    </div>
+
+    <div id="panel-checkin">
+      <div class="grid-3">
+        <div class="field"><label>Reserva ID</label><input type="number" id="ci-reserva" /></div>
+        <div class="field"><label>Habitacion</label><input type="text" id="ci-habitacion" placeholder="Ej: 101" /></div>
+      </div>
+      <div class="btn-group" style="margin-top:14px;">
+        <button class="btn btn-success" onclick="hacerCheckin()">Realizar check-in</button>
+      </div>
+      <pre id="ci-resultado" class="result hidden"></pre>
+    </div>
+
+    <div id="panel-checkout" class="hidden">
+      <div class="grid-3">
+        <div class="field"><label>Reserva ID</label><input type="number" id="co-reserva" /></div>
+      </div>
+      <div class="btn-group" style="margin-top:14px;">
+        <button class="btn btn-danger" onclick="hacerCheckout()">Realizar check-out</button>
+      </div>
+      <pre id="co-resultado" class="result hidden"></pre>
+    </div>
+
+    <div id="panel-llegadas" class="hidden">
+      <div class="grid-3">
+        <div class="field"><label>Hotel ID</label><input type="number" id="lleg-hotel" value="1" /></div>
+        <div class="field"><label>Fecha</label><input type="date" id="lleg-fecha" /></div>
+      </div>
+      <div class="btn-group" style="margin-top:14px;">
+        <button class="btn" onclick="consultarLlegadas()">Consultar llegadas</button>
+      </div>
+      <pre id="lleg-resultado" class="result hidden"></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+      </div>
+      <div class="section-title">
+        <h2>Housekeeping</h2>
+        <p>Gestion del estado de limpieza de habitaciones</p>
+      </div>
+    </div>
+    <div class="grid-3">
+      <div class="field"><label>Habitacion</label><input type="text" id="hk-habitacion" placeholder="Ej: 101" /></div>
+      <div class="field"><label>Nuevo estado</label>
+        <select id="hk-estado">
+          <option value="sucia">Sucia</option>
+          <option value="en_limpieza">En limpieza</option>
+          <option value="lista" selected>Lista</option>
+          <option value="mantenimiento">Mantenimiento</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-group" style="margin-top:14px;">
+      <button class="btn" onclick="consultarEstado()">Consultar estado</button>
+      <button class="btn btn-success" onclick="actualizarEstado()">Actualizar estado</button>
+      <button class="btn btn-secondary" onclick="listarHabitacionesLimpieza()">Listar habitaciones</button>
+    </div>
+    <pre id="hk-resultado" class="result hidden"></pre>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"><span id="toastMsg">Mensaje</span></div>
+
+<script src="../js/utils.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+  protegerRol(["empleado"]);
+  renderizarUsuario();
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const hoy = new Date().toISOString().split("T")[0];
+    $("lleg-fecha").value = hoy;
+  });
+
+  function mostrarTab(tab){
+    ["checkin", "checkout", "llegadas"].forEach(t => {
+      $("panel-" + t).classList.add("hidden");
+      $("tab" + t.charAt(0).toUpperCase() + t.slice(1)).classList.remove("active");
+    });
+    $("panel-" + tab).classList.remove("hidden");
+    $("tab" + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add("active");
+  }
+
+  async function hacerCheckin(){
+    const resEl = $("ci-resultado");
+    resEl.classList.remove("hidden", "error", "success");
+    resEl.classList.add("loading");
+    try {
+      const resp = await apiCheckin({
+        reserva_id: Number($("ci-reserva").value),
+        numero_habitacion: $("ci-habitacion").value
+      });
+      mostrarResultado(resEl, resp);
+    } catch(error){
+      mostrarError(resEl, error.message);
+    }
+  }
+
+  async function hacerCheckout(){
+    const resEl = $("co-resultado");
+    resEl.classList.remove("hidden", "error", "success");
+    resEl.classList.add("loading");
+    try {
+      const resp = await apiCheckout({ reserva_id: Number($("co-reserva").value) });
+      mostrarResultado(resEl, resp);
+    } catch(error){
+      mostrarError(resEl, error.message);
+    }
+  }
+
+  async function consultarLlegadas(){
+    const resEl = $("lleg-resultado");
+    resEl.classList.remove("hidden", "error", "success");
+    resEl.classList.add("loading");
+    try {
+      const resp = await apiLlegadas($("lleg-hotel").value, $("lleg-fecha").value);
+      mostrarResultado(resEl, resp);
+    } catch(error){
+      mostrarError(resEl, error.message);
+    }
+  }
+
+  async function consultarEstado(){
+    const resEl = $("hk-resultado");
+    resEl.classList.remove("hidden", "error", "success");
+    resEl.classList.add("loading");
+    try {
+      const resp = await apiEstadoHabitacion($("hk-habitacion").value);
+      mostrarResultado(resEl, resp);
+    } catch(error){
+      mostrarError(resEl, error.message);
+    }
+  }
+
+  async function actualizarEstado(){
+    const resEl = $("hk-resultado");
+    resEl.classList.remove("hidden", "error", "success");
+    resEl.classList.add("loading");
+    try {
+      const resp = await apiActualizarEstadoHabitacion($("hk-habitacion").value, $("hk-estado").value);
+      mostrarResultado(resEl, resp);
+    } catch(error){
+      mostrarError(resEl, error.message);
+    }
+  }
+
+  async function listarHabitacionesLimpieza(){
+    const resEl = $("hk-resultado");
+    resEl.classList.remove("hidden", "error", "success");
+    resEl.classList.add("loading");
+    try {
+      const resp = await apiListarHabitacionesLimpieza();
+      mostrarResultado(resEl, resp);
+    } catch(error){
+      mostrarError(resEl, error.message);
+    }
+  }
+
+  function mostrarResultado(el, datos){
+    el.classList.remove("loading");
+    el.classList.add("success");
+    el.textContent = JSON.stringify(datos, null, 2);
+  }
+
+  function mostrarError(el, mensaje){
+    el.classList.remove("loading");
+    el.classList.add("error");
+    el.textContent = mensaje;
+    mostrarToast(mensaje, "error");
+  }
+</script>
+</body>
+</html>

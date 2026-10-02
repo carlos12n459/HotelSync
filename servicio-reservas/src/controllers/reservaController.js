@@ -7,6 +7,14 @@ async function registrarEvento(tipo, payload) {
   console.log(`[reservas] Evento publicado: ${tipo}`, payload);
 }
 
+// Lee el usuario autenticado enviado por el gateway.
+function obtenerUsuarioHeaders(req) {
+  return {
+    id: req.headers["x-user-id"] ? Number(req.headers["x-user-id"]) : null,
+    rol: req.headers["x-user-rol"] || null
+  };
+}
+
 /**
  * POST /api/reservas
  * 1) Llama SINCRONAMENTE al servicio de disponibilidad para bloquear el
@@ -18,6 +26,7 @@ async function registrarEvento(tipo, payload) {
 async function crearReserva(req, res) {
   const {
     guest_id,
+    usuario_id,
     nombre_huesped,
     email_huesped,
     hotel_id,
@@ -33,6 +42,10 @@ async function crearReserva(req, res) {
       error: "Faltan campos obligatorios: nombre_huesped, tipo_habitacion_id, fecha_checkin, fecha_checkout, monto_total"
     });
   }
+
+  const usuario = obtenerUsuarioHeaders(req);
+  // Si viene usuario_id en el body lo respetamos, si no, usamos el usuario autenticado.
+  const usuarioFinal = usuario_id || usuario.id || null;
 
   // Buscar o crear huesped para poder integrar con fidelizacion.
   let huespedId = guest_id || null;
@@ -69,13 +82,13 @@ async function crearReserva(req, res) {
   try {
     const { rows: resultado } = await pool.query(
       `INSERT INTO reservas
-        (guest_id, nombre_huesped, email_huesped, hotel_id, tipo_habitacion_id, fecha_checkin, fecha_checkout, canal, monto_total, estado)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'confirmada')
+        (usuario_id, guest_id, nombre_huesped, email_huesped, hotel_id, tipo_habitacion_id, fecha_checkin, fecha_checkout, canal, monto_total, estado)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'confirmada')
        RETURNING id`,
-      [huespedId, nombre_huesped, email_huesped, hotel_id, tipo_habitacion_id, fecha_checkin, fecha_checkout, canal, monto_total]
+      [usuarioFinal, huespedId, nombre_huesped, email_huesped, hotel_id, tipo_habitacion_id, fecha_checkin, fecha_checkout, canal, monto_total]
     );
 
-    reserva = { id: resultado[0].id, guest_id: huespedId, ...req.body, canal, estado: "confirmada" };
+    reserva = { id: resultado[0].id, usuario_id: usuarioFinal, guest_id: huespedId, ...req.body, canal, estado: "confirmada" };
   } catch (error) {
     // Si no se pudo guardar la reserva, liberamos el inventario bloqueado
     // para no dejarlo inconsistente.
@@ -94,17 +107,44 @@ async function crearReserva(req, res) {
 
 /** GET /api/reservas — lista todas las reservas. */
 async function listarReservas(req, res) {
-  const { rows } = await pool.query("SELECT * FROM reservas ORDER BY creada_en DESC");
-  res.json(rows);
+  try {
+    const { rows } = await pool.query("SELECT * FROM reservas ORDER BY creada_en DESC");
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: "Error al listar reservas", detalle: error.message });
+  }
+}
+
+/** GET /api/mis-reservas — reservas del usuario autenticado. */
+async function listarMisReservas(req, res) {
+  const usuario = obtenerUsuarioHeaders(req);
+
+  if (!usuario.id) {
+    return res.status(401).json({ error: "Se requiere autenticacion para ver tus reservas" });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      "SELECT * FROM reservas WHERE usuario_id = $1 ORDER BY creada_en DESC",
+      [usuario.id]
+    );
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: "Error al listar tus reservas", detalle: error.message });
+  }
 }
 
 /** GET /api/reservas/:id */
 async function obtenerReserva(req, res) {
-  const { rows } = await pool.query("SELECT * FROM reservas WHERE id = $1", [req.params.id]);
-  if (rows.length === 0) {
-    return res.status(404).json({ error: "Reserva no encontrada" });
+  try {
+    const { rows } = await pool.query("SELECT * FROM reservas WHERE id = $1", [req.params.id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Reserva no encontrada" });
+    }
+    res.json(rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: "Error al obtener reserva", detalle: error.message });
   }
-  res.json(rows[0]);
 }
 
 /**
@@ -113,27 +153,31 @@ async function obtenerReserva(req, res) {
  * booking.cancelled a RabbitMQ.
  */
 async function cancelarReserva(req, res) {
-  const { rows } = await pool.query("SELECT * FROM reservas WHERE id = $1", [req.params.id]);
-  if (rows.length === 0) {
-    return res.status(404).json({ error: "Reserva no encontrada" });
+  try {
+    const { rows } = await pool.query("SELECT * FROM reservas WHERE id = $1", [req.params.id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Reserva no encontrada" });
+    }
+
+    const reserva = rows[0];
+
+    if (reserva.estado === "cancelada") {
+      return res.status(400).json({ error: "La reserva ya estaba cancelada" });
+    }
+
+    await pool.query("UPDATE reservas SET estado = 'cancelada' WHERE id = $1", [reserva.id]);
+
+    await registrarEvento("booking.cancelled", {
+      id: reserva.id,
+      tipo_habitacion_id: reserva.tipo_habitacion_id,
+      fecha_checkin: reserva.fecha_checkin,
+      fecha_checkout: reserva.fecha_checkout
+    });
+
+    res.json({ ...reserva, estado: "cancelada" });
+  } catch (error) {
+    res.status(500).json({ error: "Error al cancelar reserva", detalle: error.message });
   }
-
-  const reserva = rows[0];
-
-  if (reserva.estado === "cancelada") {
-    return res.status(400).json({ error: "La reserva ya estaba cancelada" });
-  }
-
-  await pool.query("UPDATE reservas SET estado = 'cancelada' WHERE id = $1", [reserva.id]);
-
-  await registrarEvento("booking.cancelled", {
-    id: reserva.id,
-    tipo_habitacion_id: reserva.tipo_habitacion_id,
-    fecha_checkin: reserva.fecha_checkin,
-    fecha_checkout: reserva.fecha_checkout
-  });
-
-  res.json({ ...reserva, estado: "cancelada" });
 }
 
-module.exports = { crearReserva, listarReservas, obtenerReserva, cancelarReserva };
+module.exports = { crearReserva, listarReservas, listarMisReservas, obtenerReserva, cancelarReserva };

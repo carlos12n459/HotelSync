@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HotelSync — Gestionar habitaciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/main.css" />
+</head>
+<body>
+
+<div class="topbar">
+  <a href="dashboard.html" class="brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+    </div>
+    <div>
+      <div class="brand-name">HotelSync</div>
+      <div class="brand-sub">Panel del anfitrion</div>
+    </div>
+  </a>
+  <div class="topbar-actions">
+    <div class="nav-links">
+      <a href="dashboard.html">Mis hoteles</a>
+      <a href="hoteles.html">Gestionar hoteles</a>
+      <a href="habitaciones.html">Habitaciones</a>
+    </div>
+    <div class="user-pill" id="userPill"></div>
+    <button class="btn btn-secondary" style="padding:6px 12px;font-size:0.8rem;" onclick="logout()">Salir</button>
+  </div>
+</div>
+
+<main class="container">
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+      </div>
+      <div class="section-title">
+        <h2>Gestionar habitaciones</h2>
+        <p>Selecciona un hotel para agregar tipos de habitacion y habitaciones fisicas</p>
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:18px;">
+      <label>Hotel</label>
+      <select id="select-hotel" onchange="cambiarHotel()"></select>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+      </div>
+      <div class="section-title">
+        <h2>Agregar tipo de habitacion</h2>
+      </div>
+    </div>
+    <form id="tipoForm" onsubmit="return crearTipo(event)">
+      <div class="grid-3">
+        <div class="field"><label>Nombre</label><input type="text" id="t-nombre" required /></div>
+        <div class="field"><label>Capacidad</label><input type="number" id="t-capacidad" value="2" required /></div>
+        <div class="field"><label>Tarifa base</label><input type="number" id="t-tarifa" required /></div>
+        <div class="field" style="grid-column:1 / -1;">
+          <label>Imagen</label>
+          <input type="file" id="t-imagen" accept="image/*" />
+        </div>
+      </div>
+      <div class="btn-group" style="margin-top:16px;">
+        <button class="btn btn-success" type="submit">Agregar tipo</button>
+      </div>
+    </form>
+    <pre id="tipo-resultado" class="result hidden"></pre>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+      </div>
+      <div class="section-title">
+        <h2>Agregar habitacion fisica</h2>
+      </div>
+    </div>
+    <form id="habForm" onsubmit="return crearHabitacion(event)">
+      <div class="grid-3">
+        <div class="field"><label>Numero</label><input type="text" id="hab-numero" required /></div>
+        <div class="field"><label>Tipo de habitacion</label><select id="hab-tipo" required></select></div>
+        <div class="field"><label>Piso</label><input type="text" id="hab-piso" /></div>
+      </div>
+      <div class="btn-group" style="margin-top:16px;">
+        <button class="btn btn-success" type="submit">Agregar habitacion</button>
+      </div>
+    </form>
+    <pre id="hab-resultado" class="result hidden"></pre>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+      </div>
+      <div class="section-title">
+        <h2>Tipos de habitacion</h2>
+      </div>
+    </div>
+    <div id="tipos-lista" class="card-grid"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+      </div>
+      <div class="section-title">
+        <h2>Habitaciones fisicas</h2>
+      </div>
+    </div>
+    <div id="habitaciones-lista" class="card-grid"></div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"><span id="toastMsg">Mensaje</span></div>
+
+<script src="../js/utils.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+  protegerRol(["anfitrion"]);
+  renderizarUsuario();
+
+  let hotelesCache = [];
+  let hotelIdActual = null;
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    await cargarHoteles();
+    const params = new URLSearchParams(location.search);
+    const hotelIdParam = params.get("hotel_id");
+    if(hotelIdParam){
+      $("select-hotel").value = hotelIdParam;
+    }
+    cambiarHotel();
+  });
+
+  async function cargarHoteles(){
+    const select = $("select-hotel");
+    select.innerHTML = "<option value=''>Cargando...</option>";
+    try {
+      hotelesCache = await apiListarHotelesMios();
+      select.innerHTML = hotelesCache.map(h => `<option value="${h.id}">${h.nombre} - ${h.ciudad}</option>`).join("");
+    } catch(error){
+      mostrarToast(error.message, "error");
+    }
+  }
+
+  async function cambiarHotel(){
+    hotelIdActual = Number($("select-hotel").value);
+    if(!hotelIdActual) return;
+    await cargarTipos();
+    await cargarHabitaciones();
+  }
+
+  async function cargarTipos(){
+    const contenedor = $("tipos-lista");
+    const select = $("hab-tipo");
+    contenedor.innerHTML = "<p style='color:var(--slate-500)'>Cargando...</p>";
+
+    try {
+      const tipos = await apiListarTiposHabitacion(hotelIdActual);
+      select.innerHTML = tipos.map(t => `<option value="${t.id}">${t.nombre}</option>`).join("");
+
+      if(tipos.length === 0){
+        contenedor.innerHTML = "<p style='color:var(--slate-500)'>No hay tipos de habitacion.</p>";
+        return;
+      }
+
+      contenedor.innerHTML = tipos.map(t => `
+        <div class="card">
+          <div class="card-img">
+            ${t.imagen_url ? `<img src="${API_BASE}${t.imagen_url}" alt="${t.nombre}" onerror="this.style.display='none'" />` : "Sin imagen"}
+          </div>
+          <div class="card-body">
+            <div class="card-title">${t.nombre}</div>
+            <div class="card-text">Capacidad: ${t.capacidad}</div>
+            <div class="card-text">Tarifa base: ${formatearPrecio(t.tarifa_base)}</div>
+          </div>
+        </div>
+      `).join("");
+    } catch(error){
+      contenedor.innerHTML = `<p style="color:#991b1b">${error.message}</p>`;
+    }
+  }
+
+  async function cargarHabitaciones(){
+    const contenedor = $("habitaciones-lista");
+    contenedor.innerHTML = "<p style='color:var(--slate-500)'>Cargando...</p>";
+
+    try {
+      const habitaciones = await apiListarHabitaciones(hotelIdActual);
+      if(habitaciones.length === 0){
+        contenedor.innerHTML = "<p style='color:var(--slate-500)'>No hay habitaciones fisicas.</p>";
+        return;
+      }
+
+      contenedor.innerHTML = habitaciones.map(h => `
+        <div class="card">
+          <div class="card-body">
+            <div class="card-title">Habitacion ${h.numero}</div>
+            <div class="card-text">Piso: ${h.piso || "N/A"}</div>
+            <div class="card-text">Tipo ID: ${h.tipo_habitacion_id}</div>
+            <div class="card-text">Estado: ${h.activa ? "Activa" : "Inactiva"}</div>
+          </div>
+        </div>
+      `).join("");
+    } catch(error){
+      contenedor.innerHTML = `<p style="color:#991b1b">${error.message}</p>`;
+    }
+  }
+
+  async function crearTipo(e){
+    e.preventDefault();
+    const resEl = $("tipo-resultado");
+    resEl.classList.remove("hidden", "error", "success");
+    resEl.classList.add("loading");
+    resEl.textContent = "Subiendo imagen...";
+
+    let imagenUrl = "";
+    const archivo = $("t-imagen").files[0];
+
+    try {
+      if(archivo){
+        const formData = new FormData();
+        formData.append("archivo", archivo);
+        const uploadResp = await apiSubirArchivo(formData);
+        imagenUrl = uploadResp.url;
+      }
+
+      const body = {
+        nombre: $("t-nombre").value,
+        capacidad: Number($("t-capacidad").value),
+        tarifa_base: Number($("t-tarifa").value),
+        imagen_url: imagenUrl
+      };
+
+      const resp = await apiCrearTipoHabitacion(hotelIdActual, body);
+      resEl.classList.remove("loading");
+      resEl.classList.add("success");
+      resEl.textContent = JSON.stringify(resp, null, 2);
+      $("tipoForm").reset();
+      cargarTipos();
+    } catch(error){
+      resEl.classList.remove("loading");
+      resEl.classList.add("error");
+      resEl.textContent = error.message;
+      mostrarToast(error.message, "error");
+    }
+    return false;
+  }
+
+  async function crearHabitacion(e){
+    e.preventDefault();
+    const resEl = $("hab-resultado");
+    resEl.classList.remove("hidden", "error", "success");
+    resEl.classList.add("loading");
+
+    try {
+      const body = {
+        numero: $("hab-numero").value,
+        tipo_habitacion_id: Number($("hab-tipo").value),
+        piso: $("hab-piso").value
+      };
+
+      const resp = await apiCrearHabitacion(hotelIdActual, body);
+      resEl.classList.remove("loading");
+      resEl.classList.add("success");
+      resEl.textContent = JSON.stringify(resp, null, 2);
+      $("habForm").reset();
+      cargarHabitaciones();
+    } catch(error){
+      resEl.classList.remove("loading");
+      resEl.classList.add("error");
+      resEl.textContent = error.message;
+      mostrarToast(error.message, "error");
+    }
+    return false;
+  }
+</script>
+</body>
+</html>

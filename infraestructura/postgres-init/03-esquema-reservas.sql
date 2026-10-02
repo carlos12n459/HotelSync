@@ -12,8 +12,12 @@ CREATE TABLE IF NOT EXISTS huespedes (
   creado_en     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Reservas del sistema.
+-- usuario_id: referencia al usuario autenticado que realiza la reserva.
+-- guest_id: referencia al huesped existente en el sistema (persiste para fidelizacion).
 CREATE TABLE IF NOT EXISTS reservas (
   id SERIAL PRIMARY KEY,
+  usuario_id INTEGER NULL,
   guest_id INTEGER NULL,
   nombre_huesped VARCHAR(150) NOT NULL,
   email_huesped VARCHAR(150) NOT NULL,

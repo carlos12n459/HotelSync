@@ -165,6 +165,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      servicio-usuarios:
+        condition: service_started
 
   servicio-channel-manager:
     build: ./servicio-channel-manager
@@ -269,6 +271,42 @@ services:
       servicio-propiedades:
         condition: service_started
 
+  # Nuevo servicio de usuarios: autenticacion y autorizacion.
+  servicio-usuarios:
+    build: ./servicio-usuarios
+    container_name: hotelsync-usuarios
+    restart: unless-stopped
+    ports:
+      - "3011:3011"
+    environment:
+      PORT: 3011
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: hotelsync_app
+      DB_PASSWORD: hotelsync_app_pass
+      DB_NAME: usuarios_db
+      JWT_SECRET: ${JWT_SECRET:-hotelsync_jwt_secret_para_dev}
+      JWT_EXPIRES_IN: 24h
+      BCRYPT_ROUNDS: 10
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Nuevo servicio de archivos: subida y servicio de imagenes.
+  servicio-archivos:
+    build: ./servicio-archivos
+    container_name: hotelsync-archivos
+    restart: unless-stopped
+    ports:
+      - "3012:3012"
+    environment:
+      PORT: 3012
+      UPLOAD_DIR: uploads
+    volumes:
+      - hotelsync_uploads:/app/uploads
+    depends_on:
+      - servicio-usuarios
+
   api-gateway:
     build: ./api-gateway
     container_name: hotelsync-api-gateway
@@ -286,6 +324,9 @@ services:
       URL_SERVICIO_FACTURACION: http://servicio-facturacion:3007
       URL_SERVICIO_FIDELIZACION: http://servicio-fidelizacion:3008
       URL_SERVICIO_ANALYTICS: http://servicio-analytics:3009
+      URL_SERVICIO_USUARIOS: http://servicio-usuarios:3011
+      URL_SERVICIO_ARCHIVOS: http://servicio-archivos:3012
+      JWT_SECRET: ${JWT_SECRET:-hotelsync_jwt_secret_para_dev}
     depends_on:
       - servicio-disponibilidad-tarifas
       - servicio-reservas
@@ -296,6 +337,9 @@ services:
       - servicio-facturacion
       - servicio-fidelizacion
       - servicio-analytics
+      - servicio-usuarios
+      - servicio-archivos
 
 volumes:
   hotelsync_postgres_data:
+  hotelsync_uploads:
