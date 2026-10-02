@@ -4,7 +4,7 @@ Microservicio de autenticacion y gestion de usuarios de HotelSync.
 
 ## Responsabilidad
 
-- Registrar usuarios con roles: `admin`, `anfitrion`, `empleado`, `huesped`.
+- Registrar usuarios con roles: `admin`, `gerente`, `empleado`, `cliente`.
 - Autenticar usuarios con email/password y devolver JWT.
 - Proteger rutas con middleware JWT.
 - Permitir a los administradores cambiar el rol de cualquier usuario.

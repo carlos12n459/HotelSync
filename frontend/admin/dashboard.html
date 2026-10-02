@@ -46,9 +46,9 @@
       <div class="field"><label>Nuevo rol</label>
         <select id="usr-rol">
           <option value="admin">admin</option>
-          <option value="anfitrion">anfitrion</option>
+          <option value="gerente">gerente</option>
           <option value="empleado">empleado</option>
-          <option value="huesped">huesped</option>
+          <option value="cliente">cliente</option>
         </select>
       </div>
     </div>
@@ -56,7 +56,7 @@
       <button class="btn" onclick="cambiarRol()">Cambiar rol</button>
       <button class="btn btn-secondary" onclick="consultarUsuario()">Consultar usuario</button>
     </div>
-    <pre id="usr-resultado" class="result hidden"></pre>
+    <div id="usr-resultado" class="result hidden"></div>
   </div>
 
   <div class="section">
@@ -115,57 +115,37 @@
   }
 
   async function cargarHoteles(){
-    const contenedor = $("admin-lista");
-    contenedor.innerHTML = "<p style='color:var(--slate-500)'>Cargando...</p>";
+    renderLoading("admin-lista", "Cargando...", { setClass: false });
     try {
       const hoteles = await apiListarHoteles();
-      contenedor.innerHTML = hoteles.map(h => `
-        <div class="card">
-          <div class="card-img">
-            ${h.imagen_url ? `<img src="${API_BASE}${h.imagen_url}" alt="${h.nombre}" onerror="this.style.display='none'" />` : "Sin imagen"}
-          </div>
-          <div class="card-body">
-            <div class="card-title">${h.nombre}</div>
-            <div class="card-text">${h.ciudad}, ${h.pais}</div>
-            <div class="card-text">Owner ID: ${h.owner_id || "N/A"}</div>
-          </div>
-        </div>
-      `).join("");
+      renderData("admin-lista", hoteles, {
+        setClass: false,
+        emptyMessage: "No hay hoteles registrados."
+      });
     } catch(error){
-      contenedor.innerHTML = `<p style="color:#991b1b">${error.message}</p>`;
+      renderError("admin-lista", error.message, { setClass: false });
     }
   }
 
   async function cargarReservas(){
-    const contenedor = $("admin-lista");
-    contenedor.innerHTML = "<p style='color:var(--slate-500)'>Cargando...</p>";
+    renderLoading("admin-lista", "Cargando...", { setClass: false });
     try {
       const reservas = await apiListarReservas();
-      contenedor.innerHTML = reservas.map(r => `
-        <div class="card">
-          <div class="card-body">
-            <div class="card-title">Reserva #${r.id}</div>
-            <div class="card-text">Hotel: ${r.hotel_id} | Tipo: ${r.tipo_habitacion_id}</div>
-            <div class="card-text">Usuario: ${r.usuario_id || "N/A"}</div>
-            <div class="card-text">Estado: ${r.estado}</div>
-          </div>
-        </div>
-      `).join("");
+      renderData("admin-lista", reservas, {
+        setClass: false,
+        emptyMessage: "No hay reservas registradas."
+      });
     } catch(error){
-      contenedor.innerHTML = `<p style="color:#991b1b">${error.message}</p>`;
+      renderError("admin-lista", error.message, { setClass: false });
     }
   }
 
   function mostrarResultado(el, datos){
-    el.classList.remove("loading");
-    el.classList.add("success");
-    el.textContent = JSON.stringify(datos, null, 2);
+    renderData(el.id, datos);
   }
 
   function mostrarError(el, mensaje){
-    el.classList.remove("loading");
-    el.classList.add("error");
-    el.textContent = mensaje;
+    renderError(el.id, mensaje);
     mostrarToast(mensaje, "error");
   }
 </script>

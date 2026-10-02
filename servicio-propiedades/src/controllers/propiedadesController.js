@@ -20,7 +20,9 @@ async function listarHoteles(req, res) {
 }
 
 /** GET /api/hoteles/mios
- * Lista los hoteles del anfitrion autenticado.
+ * Lista los hoteles del gerente/admin autenticado.
+ * - admin: ve todos los hoteles.
+ * - gerente: ve solo los hoteles donde es owner.
  */
 async function listarHotelesMios(req, res) {
   const usuario = obtenerUsuarioHeaders(req);
@@ -30,10 +32,15 @@ async function listarHotelesMios(req, res) {
   }
 
   try {
-    const { rows } = await pool.query(
-      "SELECT * FROM hoteles WHERE owner_id = $1 ORDER BY id",
-      [usuario.id]
-    );
+    let rows;
+    if (usuario.rol === "admin") {
+      ({ rows } = await pool.query("SELECT * FROM hoteles ORDER BY id"));
+    } else {
+      ({ rows } = await pool.query(
+        "SELECT * FROM hoteles WHERE owner_id = $1 ORDER BY id",
+        [usuario.id]
+      ));
+    }
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: "Error al listar tus hoteles", detalle: error.message });
@@ -53,7 +60,7 @@ async function obtenerHotel(req, res) {
 
 /** POST /api/hoteles
  * Crea un hotel. Se puede especificar owner_id e imagen_url.
- * Si el usuario esta autenticado como anfitrion, se asigna automaticamente.
+ * Si el usuario esta autenticado como gerente, se asigna automaticamente.
  */
 async function crearHotel(req, res) {
   const { nombre, ciudad, pais, timezone, direccion, owner_id, imagen_url } = req.body;
@@ -63,8 +70,8 @@ async function crearHotel(req, res) {
     return res.status(400).json({ error: "nombre, ciudad y pais son obligatorios" });
   }
 
-  // Si no se envia owner_id y el usuario autenticado es anfitrion, lo usamos.
-  const ownerFinal = owner_id || (usuario.rol === "anfitrion" ? usuario.id : null);
+  // Si no se envia owner_id y el usuario autenticado es gerente, lo usamos.
+  const ownerFinal = owner_id || (usuario.rol === "gerente" ? usuario.id : null);
 
   try {
     const { rows: resultado } = await pool.query(

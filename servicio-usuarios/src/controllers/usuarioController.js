@@ -8,10 +8,10 @@ const BCRYPT_ROUNDS = Number(process.env.BCRYPT_ROUNDS) || 10;
 /**
  * POST /api/auth/register
  * Registra un usuario nuevo con password hasheado.
- * Campos: nombre, email, password, rol (opcional, default 'huesped').
+ * Campos: nombre, email, password, rol (opcional, default 'cliente').
  */
 async function registrar(req, res) {
-  const { nombre, email, password, rol = "huesped" } = req.body;
+  const { nombre, email, password, rol = "cliente" } = req.body;
 
   if (!nombre || !email || !password) {
     return res.status(400).json({ error: "nombre, email y password son obligatorios" });

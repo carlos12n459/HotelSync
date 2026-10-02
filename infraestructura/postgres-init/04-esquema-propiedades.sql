@@ -3,7 +3,7 @@ GRANT ALL ON SCHEMA public TO hotelsync_app;
 SET ROLE hotelsync_app;
 
 -- Catalogo maestro de hoteles de la cadena.
--- owner_id: referencia al usuario anfitrion que administra el hotel.
+-- owner_id: referencia al usuario gerente/admin que administra el hotel.
 -- imagen_url: URL de la imagen principal del hotel.
 CREATE TABLE IF NOT EXISTS hoteles (
   id          SERIAL PRIMARY KEY,

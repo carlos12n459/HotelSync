@@ -56,7 +56,7 @@
       <div class="btn-group" style="margin-top:14px;">
         <button class="btn btn-success" onclick="hacerCheckin()">Realizar check-in</button>
       </div>
-      <pre id="ci-resultado" class="result hidden"></pre>
+      <div id="ci-resultado" class="result hidden"></div>
     </div>
 
     <div id="panel-checkout" class="hidden">
@@ -66,7 +66,7 @@
       <div class="btn-group" style="margin-top:14px;">
         <button class="btn btn-danger" onclick="hacerCheckout()">Realizar check-out</button>
       </div>
-      <pre id="co-resultado" class="result hidden"></pre>
+      <div id="co-resultado" class="result hidden"></div>
     </div>
 
     <div id="panel-llegadas" class="hidden">
@@ -77,7 +77,7 @@
       <div class="btn-group" style="margin-top:14px;">
         <button class="btn" onclick="consultarLlegadas()">Consultar llegadas</button>
       </div>
-      <pre id="lleg-resultado" class="result hidden"></pre>
+      <div id="lleg-resultado" class="result hidden"></div>
     </div>
   </div>
 
@@ -107,7 +107,7 @@
       <button class="btn btn-success" onclick="actualizarEstado()">Actualizar estado</button>
       <button class="btn btn-secondary" onclick="listarHabitacionesLimpieza()">Listar habitaciones</button>
     </div>
-    <pre id="hk-resultado" class="result hidden"></pre>
+    <div id="hk-resultado" class="result hidden"></div>
   </div>
 
 </main>
@@ -211,15 +211,12 @@
   }
 
   function mostrarResultado(el, datos){
-    el.classList.remove("loading");
-    el.classList.add("success");
-    el.textContent = JSON.stringify(datos, null, 2);
+    // Se reutiliza el ID del elemento para renderizar visualmente con renderData.
+    renderData(el.id, datos);
   }
 
   function mostrarError(el, mensaje){
-    el.classList.remove("loading");
-    el.classList.add("error");
-    el.textContent = mensaje;
+    renderError(el.id, mensaje);
     mostrarToast(mensaje, "error");
   }
 </script>

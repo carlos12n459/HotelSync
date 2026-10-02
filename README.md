@@ -9,16 +9,16 @@ Proyecto completo de microservicios que cubre toda la cadena operativa de una ca
 | Servicio | Puerto | Descripcion |
 |---|---|---|
 | `servicio-disponibilidad-tarifas` | 3001 | Inventario por fecha, precios, bloqueo sincrono anti-sobreventa. Cache de disponibilidad con Redis. |
-| `servicio-reservas` | 3002 | Ciclo de vida de reservas, huespedes y usuarios autenticados; publica eventos de reserva. |
+| `servicio-reservas` | 3002 | Ciclo de vida de reservas, clientes y usuarios autenticados; publica eventos de reserva. |
 | `servicio-recepcion` | 3003 | Check-in, check-out, asignacion de habitaciones, incidencias. |
 | `servicio-housekeeping` | 3004 | Estado de limpieza de habitaciones fisicas. |
 | `servicio-propiedades` | 3005 | Catalogo maestro de hoteles, tipos de habitacion y habitaciones fisicas. Soporta owner_id e imagen_url. |
 | `servicio-channel-manager` | 3006 | Webhooks de OTAs (Booking, Expedia, Airbnb) y sincronizacion de disponibilidad. |
 | `servicio-facturacion` | 3007 | Folios, cargos, pagos y facturacion final. |
-| `servicio-fidelizacion` | 3008 | Acumulacion y canje de puntos por huesped. |
+| `servicio-fidelizacion` | 3008 | Acumulacion y canje de puntos por cliente. |
 | `servicio-analytics` | 3009 | KPIs de revenue management: ocupacion, ADR, RevPAR. |
 | `api-gateway` | 3010 | Punto de entrada unico que enruta a cada microservicio y aplica verificacion JWT opcional. |
-| `servicio-usuarios` | 3011 | Registro, login y gestion de usuarios con roles (admin, anfitrion, empleado, huesped). |
+| `servicio-usuarios` | 3011 | Registro, login y gestion de usuarios con roles (admin, gerente, empleado, cliente). |
 | `servicio-archivos` | 3012 | Subida y servicio de imagenes con multer. |
 
 ## Infraestructura
@@ -112,11 +112,11 @@ La carpeta `frontend/` contiene la interfaz web organizada por roles:
 
 - `index.html` — Landing / busqueda de hoteles (publica).
 - `login.html` — Login y registro.
-- `huesped/dashboard.html` — Buscar y reservar hoteles.
-- `huesped/reservas.html` — Mis reservas.
-- `anfitrion/dashboard.html` — Mis hoteles.
-- `anfitrion/hoteles.html` — Crear hoteles con subida de imagen.
-- `anfitrion/habitaciones.html` — Gestionar tipos de habitacion y habitaciones fisicas.
+- `cliente/dashboard.html` — Buscar y reservar hoteles.
+- `cliente/reservas.html` — Mis reservas.
+- `gerente/dashboard.html` — Mis hoteles.
+- `gerente/hoteles.html` — Crear hoteles con subida de imagen.
+- `gerente/habitaciones.html` — Gestionar tipos de habitacion y habitaciones fisicas.
 - `empleado/dashboard.html` — Check-in, check-out, housekeeping.
 - `admin/dashboard.html` — Gestion de usuarios y vista global.
 
@@ -129,7 +129,7 @@ El script `11-esquema-usuarios.sql` crea un usuario admin por defecto:
 - **Email:** `admin@hotelsync.com`
 - **Password:** `admin123`
 
-Tambien puedes registrar nuevos usuarios desde `frontend/login.html` con los roles de huesped, anfitrion o empleado.
+Tambien puedes registrar nuevos usuarios desde `frontend/login.html` con los roles de cliente, gerente o empleado.
 
 ## Flujo de prueba con curl (a traves del API Gateway)
 
@@ -137,7 +137,7 @@ Tambien puedes registrar nuevos usuarios desde `frontend/login.html` con los rol
 
 ```bash
 # Registro
-curl -X POST http://localhost:3010/usuarios/auth/register -H "Content-Type: application/json" -d "{\"nombre\":\"Ana Gomez\",\"email\":\"ana@example.com\",\"password\":\"ana123\",\"rol\":\"huesped\"}"
+curl -X POST http://localhost:3010/usuarios/auth/register -H "Content-Type: application/json" -d "{\"nombre\":\"Ana Gomez\",\"email\":\"ana@example.com\",\"password\":\"ana123\",\"rol\":\"cliente\"}"
 
 # Login
 curl -X POST http://localhost:3010/usuarios/auth/login -H "Content-Type: application/json" -d "{\"email\":\"admin@hotelsync.com\",\"password\":\"admin123\"}"

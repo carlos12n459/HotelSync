@@ -17,7 +17,7 @@
     </div>
     <div>
       <div class="brand-name">HotelSync</div>
-      <div class="brand-sub">Panel del huesped</div>
+      <div class="brand-sub">Panel del cliente</div>
     </div>
   </a>
   <div class="topbar-actions">
@@ -51,23 +51,23 @@
 <script src="../js/api.js"></script>
 <script src="../js/auth.js"></script>
 <script>
-  protegerRol(["huesped"]);
+  protegerRol(["cliente"]);
   renderizarUsuario();
 
   document.addEventListener("DOMContentLoaded", cargarReservas);
 
   async function cargarReservas(){
-    const contenedor = $("reservas-lista");
-    contenedor.innerHTML = "<p style='color:var(--slate-500)'>Cargando...</p>";
+    renderLoading("reservas-lista", "Cargando...", { setClass: false });
 
     try {
       const reservas = await apiMisReservas();
       if(reservas.length === 0){
-        contenedor.innerHTML = "<p style='color:var(--slate-500)'>Aun no tienes reservas.</p>";
+        renderData("reservas-lista", [], { setClass: false, emptyMessage: "Aun no tienes reservas." });
         return;
       }
 
-      contenedor.innerHTML = reservas.map(r => `
+      // Se conserva el renderizado manual para incluir el boton de cancelar.
+      $("reservas-lista").innerHTML = reservas.map(r => `
         <div class="card">
           <div class="card-body">
             <div class="card-title">Reserva #${r.id}</div>
@@ -82,7 +82,7 @@
         </div>
       `).join("");
     } catch(error){
-      contenedor.innerHTML = `<p style="color:#991b1b">${error.message}</p>`;
+      renderError("reservas-lista", error.message, { setClass: false });
     }
   }
 

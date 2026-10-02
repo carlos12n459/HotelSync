@@ -3,7 +3,11 @@ const jwt = require("jsonwebtoken");
 const JWT_SECRET = process.env.JWT_SECRET || "cambiar_en_produccion";
 
 // Roles permitidos en el sistema.
-const ROLES_PERMITIDOS = ["admin", "anfitrion", "empleado", "huesped"];
+// cliente: huesped que reserva.
+// admin: dueño total, administra todo.
+// gerente: administra ciertos hoteles (por owner_id en esta version).
+// empleado: operacion diaria.
+const ROLES_PERMITIDOS = ["admin", "gerente", "empleado", "cliente"];
 
 /**
  * Genera un JWT con la informacion basica del usuario.

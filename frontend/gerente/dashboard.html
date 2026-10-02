@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>HotelSync — Panel del anfitrion</title>
+<title>HotelSync — Panel del gerente</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../css/main.css" />
@@ -17,7 +17,7 @@
     </div>
     <div>
       <div class="brand-name">HotelSync</div>
-      <div class="brand-sub">Panel del anfitrion</div>
+      <div class="brand-sub">Panel del gerente</div>
     </div>
   </a>
   <div class="topbar-actions">
@@ -40,7 +40,7 @@
       </div>
       <div class="section-title">
         <h2>Mis hoteles</h2>
-        <p>Hoteles que administras como anfitrion</p>
+        <p>Hoteles que administras como gerente</p>
       </div>
     </div>
     <div id="mis-hoteles" class="card-grid"></div>
@@ -54,23 +54,23 @@
 <script src="../js/api.js"></script>
 <script src="../js/auth.js"></script>
 <script>
-  protegerRol(["anfitrion"]);
+  protegerRol(["admin", "gerente"]);
   renderizarUsuario();
 
   document.addEventListener("DOMContentLoaded", cargarMisHoteles);
 
   async function cargarMisHoteles(){
-    const contenedor = $("mis-hoteles");
-    contenedor.innerHTML = "<p style='color:var(--slate-500)'>Cargando...</p>";
+    renderLoading("mis-hoteles", "Cargando...", { setClass: false });
 
     try {
       const hoteles = await apiListarHotelesMios();
       if(hoteles.length === 0){
-        contenedor.innerHTML = `<p style='color:var(--slate-500)'>No tienes hoteles registrados. <a href="hoteles.html" style="color:var(--sky-700);font-weight:600;">Crea el primero</a>.</p>`;
+        $("mis-hoteles").innerHTML = `<p style='color:var(--slate-500)'>No tienes hoteles registrados. <a href="hoteles.html" style="color:var(--sky-700);font-weight:600;">Crea el primero</a>.</p>`;
         return;
       }
 
-      contenedor.innerHTML = hoteles.map(h => `
+      // Se conserva el renderizado manual para agregar el enlace a habitaciones.
+      $("mis-hoteles").innerHTML = hoteles.map(h => `
         <div class="card">
           <div class="card-img">
             ${h.imagen_url ? `<img src="${API_BASE}${h.imagen_url}" alt="${h.nombre}" onerror="this.style.display='none'" />` : "Sin imagen"}
@@ -87,7 +87,7 @@
         </div>
       `).join("");
     } catch(error){
-      contenedor.innerHTML = `<p style="color:#991b1b">${error.message}</p>`;
+      renderError("mis-hoteles", error.message, { setClass: false });
     }
   }
 </script>

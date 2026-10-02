@@ -48,7 +48,7 @@ Infraestructura compartida:
 
 Responsable de:
 
-- Registro de usuarios con roles: `admin`, `anfitrion`, `empleado`, `huesped`.
+- Registro de usuarios con roles: `admin`, `gerente`, `empleado`, `cliente`.
 - Login con email/password devolviendo JWT.
 - Verificacion del token para rutas protegidas.
 - Cambio de rol (solo admin).
@@ -102,9 +102,9 @@ Se agregaron:
 
 Se agregaron:
 
-- Campo `owner_id` en `hoteles` para asociar un hotel con su anfitrion.
+- Campo `owner_id` en `hoteles` para asociar un hotel con su gerente (o admin).
 - Campo `imagen_url` en `hoteles` y `tipos_habitacion`.
-- Endpoint `GET /propiedades/hoteles/mios` para listar hoteles del anfitrion autenticado.
+- Endpoint `GET /propiedades/hoteles/mios` para listar hoteles del gerente autenticado (admin ve todos).
 - Endpoint `PATCH /propiedades/hoteles/:id` para editar un hotel (solo dueno o admin).
 - El servicio lee los headers `x-user-*` enviados por el gateway para autorizar y asignar owner_id.
 
@@ -122,15 +122,15 @@ La interfaz se organiza en paginas estaticas dentro de `frontend/`:
 
 - `index.html` — Landing publica con buscador de hoteles.
 - `login.html` — Login y registro, guarda JWT en `localStorage`.
-- `huesped/` — Dashboard y mis reservas.
-- `anfitrion/` — Dashboard, gestion de hoteles y habitaciones.
+- `cliente/` — Dashboard y mis reservas.
+- `gerente/` — Dashboard, gestion de hoteles y habitaciones.
 - `empleado/` — Check-in, check-out, housekeeping.
 - `admin/` — Gestion de usuarios y vista global.
 
 Archivos compartidos:
 
 - `css/main.css` — Estilos con paleta azul claro, responsive.
-- `js/utils.js` — Utilidades (token, usuario, fechas, toast).
+- `js/utils.js` — Utilidades (token, usuario, fechas, toast, renderizado visual de respuestas).
 - `js/api.js` — Cliente HTTP para el API Gateway.
 - `js/auth.js` — Logica de sesion.
 

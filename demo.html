@@ -6,6 +6,7 @@
 <title>HotelSync — Plataforma de Gestión Hotelera Multi-Propiedad</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="frontend/css/main.css" />
 <style>
   :root{
     --sky-50:#f0f9ff;
@@ -294,7 +295,7 @@
       <button class="btn btn-secondary" onclick="listarTiposHabitacion()">Tipos de habitación</button>
       <button class="btn btn-secondary" onclick="listarHabitacionesFisicas()">Habitaciones físicas</button>
     </div>
-    <pre class="result" id="r-propiedades"></pre>
+    <div class="result" id="r-propiedades"></div>
   </div>
 
   <!-- Disponibilidad -->
@@ -317,7 +318,7 @@
     <div class="btn-group" style="margin-top:14px;">
       <button class="btn" onclick="consultarDisponibilidad()">Consultar disponibilidad</button>
     </div>
-    <pre class="result" id="r-disponibilidad"></pre>
+    <div class="result" id="r-disponibilidad"></div>
   </div>
 
   <!-- Reservas -->
@@ -332,7 +333,7 @@
       </div>
     </div>
     <div class="grid-3">
-      <div class="field"><label>Nombre huésped</label><input type="text" id="r-nombre" value="María Pérez" /></div>
+      <div class="field"><label>Nombre cliente</label><input type="text" id="r-nombre" value="María Pérez" /></div>
       <div class="field"><label>Email</label><input type="email" id="r-email" value="maria@example.com" /></div>
       <div class="field"><label>Hotel id</label><input type="number" id="r-hotel" value="1" /></div>
       <div class="field"><label>Tipo habitación</label><input type="number" id="r-tipo-hab" value="1" /></div>
@@ -352,7 +353,7 @@
       <button class="btn btn-success" onclick="crearReserva()">Crear reserva</button>
       <button class="btn btn-secondary" onclick="listarReservas()">Listar reservas</button>
     </div>
-    <pre class="result" id="r-reservas"></pre>
+    <div class="result" id="r-reservas"></div>
   </div>
 
   <!-- Channel Manager -->
@@ -386,7 +387,7 @@
     <div class="btn-group" style="margin-top:14px;">
       <button class="btn" onclick="simularWebhookOTA()">Enviar webhook OTA</button>
     </div>
-    <pre class="result" id="r-channel"></pre>
+    <div class="result" id="r-channel"></div>
   </div>
 
   <!-- Recepción -->
@@ -412,7 +413,7 @@
       <button class="btn btn-success" onclick="checkin()">Check-in</button>
       <button class="btn btn-danger" onclick="checkout()">Checkout</button>
     </div>
-    <pre class="result" id="r-recepcion"></pre>
+    <div class="result" id="r-recepcion"></div>
   </div>
 
   <!-- Housekeeping -->
@@ -442,7 +443,7 @@
       <button class="btn btn-secondary" onclick="listarHabitaciones()">Listar habitaciones</button>
       <button class="btn btn-success" onclick="actualizarEstadoHabitacion()">Actualizar estado</button>
     </div>
-    <pre class="result" id="r-housekeeping"></pre>
+    <div class="result" id="r-housekeeping"></div>
   </div>
 
   <!-- Facturación -->
@@ -460,7 +461,7 @@
       <button class="btn" onclick="listarFolios()">Listar folios</button>
       <button class="btn btn-secondary" onclick="listarFacturas()">Listar facturas</button>
     </div>
-    <pre class="result" id="r-facturacion"></pre>
+    <div class="result" id="r-facturacion"></div>
   </div>
 
   <!-- Fidelización -->
@@ -471,7 +472,7 @@
       </div>
       <div class="section-title">
         <h2>8. Fidelización</h2>
-        <p>Puntos y niveles de membresía por huésped</p>
+        <p>Puntos y niveles de membresía por cliente</p>
       </div>
     </div>
     <div class="grid-3">
@@ -481,7 +482,7 @@
       <button class="btn" onclick="consultarCuenta()">Consultar cuenta</button>
       <button class="btn btn-secondary" onclick="listarTransacciones()">Transacciones</button>
     </div>
-    <pre class="result" id="r-fidelizacion"></pre>
+    <div class="result" id="r-fidelizacion"></div>
   </div>
 
   <!-- Analytics -->
@@ -499,7 +500,7 @@
       <button class="btn" onclick="ejecutarETL()">Ejecutar ETL</button>
       <button class="btn btn-secondary" onclick="listarKPIs()">Listar KPIs</button>
     </div>
-    <pre class="result" id="r-analytics"></pre>
+    <div class="result" id="r-analytics"></div>
   </div>
 
 </main>
@@ -514,23 +515,24 @@
   <span id="toastMsg">Mensaje</span>
 </div>
 
+<script src="frontend/js/utils.js"></script>
 <script>
   let BASE = "http://localhost:3010";
+
+  // Sobreescribimos set() para usar el renderizado visual compartido de utils.js.
+  function set(id, data, type=""){
+    const el = document.getElementById(id);
+    if(!el) return;
+    if(type === "error"){
+      renderError(id, typeof data === "string" ? data : JSON.stringify(data));
+    } else {
+      renderData(id, data);
+    }
+  }
 
   function actualizarBaseUrl(){
     BASE = document.getElementById("baseUrlInput").value.replace(/\/$/, "");
     verificarConexion();
-  }
-
-  function set(id, data, type=""){
-    const el = document.getElementById(id);
-    el.className = "result " + type;
-    if (data === undefined || data === null) {
-      el.textContent = "Sin respuesta";
-      return;
-    }
-    if (typeof data === "string") el.textContent = data;
-    else el.textContent = JSON.stringify(data, null, 2);
   }
 
   function showToast(msg, type=""){

@@ -9,8 +9,8 @@ CREATE TABLE IF NOT EXISTS users (
   nombre        VARCHAR(150) NOT NULL,
   email         VARCHAR(150) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
-  rol           VARCHAR(20) NOT NULL DEFAULT 'huesped'
-                CHECK (rol IN ('admin', 'anfitrion', 'empleado', 'huesped')),
+  rol           VARCHAR(20) NOT NULL DEFAULT 'cliente'
+                CHECK (rol IN ('admin', 'gerente', 'empleado', 'cliente')),
   creado_en     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

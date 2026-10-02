@@ -17,7 +17,7 @@
     </div>
     <div>
       <div class="brand-name">HotelSync</div>
-      <div class="brand-sub">Panel del anfitrion</div>
+      <div class="brand-sub">Panel del gerente</div>
     </div>
   </a>
   <div class="topbar-actions">
@@ -72,7 +72,7 @@
         <button class="btn btn-success" type="submit">Agregar tipo</button>
       </div>
     </form>
-    <pre id="tipo-resultado" class="result hidden"></pre>
+    <div id="tipo-resultado" class="result hidden"></div>
   </div>
 
   <div class="section">
@@ -94,7 +94,7 @@
         <button class="btn btn-success" type="submit">Agregar habitacion</button>
       </div>
     </form>
-    <pre id="hab-resultado" class="result hidden"></pre>
+    <div id="hab-resultado" class="result hidden"></div>
   </div>
 
   <div class="section">
@@ -129,7 +129,7 @@
 <script src="../js/api.js"></script>
 <script src="../js/auth.js"></script>
 <script>
-  protegerRol(["anfitrion"]);
+  protegerRol(["admin", "gerente"]);
   renderizarUsuario();
 
   let hotelesCache = [];
@@ -164,68 +164,39 @@
   }
 
   async function cargarTipos(){
-    const contenedor = $("tipos-lista");
     const select = $("hab-tipo");
-    contenedor.innerHTML = "<p style='color:var(--slate-500)'>Cargando...</p>";
+    renderLoading("tipos-lista", "Cargando...", { setClass: false });
 
     try {
       const tipos = await apiListarTiposHabitacion(hotelIdActual);
       select.innerHTML = tipos.map(t => `<option value="${t.id}">${t.nombre}</option>`).join("");
 
-      if(tipos.length === 0){
-        contenedor.innerHTML = "<p style='color:var(--slate-500)'>No hay tipos de habitacion.</p>";
-        return;
-      }
-
-      contenedor.innerHTML = tipos.map(t => `
-        <div class="card">
-          <div class="card-img">
-            ${t.imagen_url ? `<img src="${API_BASE}${t.imagen_url}" alt="${t.nombre}" onerror="this.style.display='none'" />` : "Sin imagen"}
-          </div>
-          <div class="card-body">
-            <div class="card-title">${t.nombre}</div>
-            <div class="card-text">Capacidad: ${t.capacidad}</div>
-            <div class="card-text">Tarifa base: ${formatearPrecio(t.tarifa_base)}</div>
-          </div>
-        </div>
-      `).join("");
+      renderData("tipos-lista", tipos, {
+        setClass: false,
+        emptyMessage: "No hay tipos de habitacion."
+      });
     } catch(error){
-      contenedor.innerHTML = `<p style="color:#991b1b">${error.message}</p>`;
+      renderError("tipos-lista", error.message, { setClass: false });
     }
   }
 
   async function cargarHabitaciones(){
-    const contenedor = $("habitaciones-lista");
-    contenedor.innerHTML = "<p style='color:var(--slate-500)'>Cargando...</p>";
+    renderLoading("habitaciones-lista", "Cargando...", { setClass: false });
 
     try {
       const habitaciones = await apiListarHabitaciones(hotelIdActual);
-      if(habitaciones.length === 0){
-        contenedor.innerHTML = "<p style='color:var(--slate-500)'>No hay habitaciones fisicas.</p>";
-        return;
-      }
-
-      contenedor.innerHTML = habitaciones.map(h => `
-        <div class="card">
-          <div class="card-body">
-            <div class="card-title">Habitacion ${h.numero}</div>
-            <div class="card-text">Piso: ${h.piso || "N/A"}</div>
-            <div class="card-text">Tipo ID: ${h.tipo_habitacion_id}</div>
-            <div class="card-text">Estado: ${h.activa ? "Activa" : "Inactiva"}</div>
-          </div>
-        </div>
-      `).join("");
+      renderData("habitaciones-lista", habitaciones, {
+        setClass: false,
+        emptyMessage: "No hay habitaciones fisicas."
+      });
     } catch(error){
-      contenedor.innerHTML = `<p style="color:#991b1b">${error.message}</p>`;
+      renderError("habitaciones-lista", error.message, { setClass: false });
     }
   }
 
   async function crearTipo(e){
     e.preventDefault();
-    const resEl = $("tipo-resultado");
-    resEl.classList.remove("hidden", "error", "success");
-    resEl.classList.add("loading");
-    resEl.textContent = "Subiendo imagen...";
+    renderLoading("tipo-resultado", "Subiendo imagen...");
 
     let imagenUrl = "";
     const archivo = $("t-imagen").files[0];
@@ -246,15 +217,11 @@
       };
 
       const resp = await apiCrearTipoHabitacion(hotelIdActual, body);
-      resEl.classList.remove("loading");
-      resEl.classList.add("success");
-      resEl.textContent = JSON.stringify(resp, null, 2);
+      renderData("tipo-resultado", resp);
       $("tipoForm").reset();
       cargarTipos();
     } catch(error){
-      resEl.classList.remove("loading");
-      resEl.classList.add("error");
-      resEl.textContent = error.message;
+      renderError("tipo-resultado", error.message);
       mostrarToast(error.message, "error");
     }
     return false;
@@ -262,9 +229,7 @@
 
   async function crearHabitacion(e){
     e.preventDefault();
-    const resEl = $("hab-resultado");
-    resEl.classList.remove("hidden", "error", "success");
-    resEl.classList.add("loading");
+    renderLoading("hab-resultado", "Guardando...");
 
     try {
       const body = {
@@ -274,15 +239,11 @@
       };
 
       const resp = await apiCrearHabitacion(hotelIdActual, body);
-      resEl.classList.remove("loading");
-      resEl.classList.add("success");
-      resEl.textContent = JSON.stringify(resp, null, 2);
+      renderData("hab-resultado", resp);
       $("habForm").reset();
       cargarHabitaciones();
     } catch(error){
-      resEl.classList.remove("loading");
-      resEl.classList.add("error");
-      resEl.textContent = error.message;
+      renderError("hab-resultado", error.message);
       mostrarToast(error.message, "error");
     }
     return false;

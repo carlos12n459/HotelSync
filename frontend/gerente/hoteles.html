@@ -17,7 +17,7 @@
     </div>
     <div>
       <div class="brand-name">HotelSync</div>
-      <div class="brand-sub">Panel del anfitrion</div>
+      <div class="brand-sub">Panel del gerente</div>
     </div>
   </a>
   <div class="topbar-actions">
@@ -60,7 +60,7 @@
         <button class="btn btn-success" type="submit">Crear hotel</button>
       </div>
     </form>
-    <pre id="hotel-resultado" class="result hidden"></pre>
+    <div id="hotel-resultado" class="result hidden"></div>
   </div>
 
   <div class="section">
@@ -83,17 +83,14 @@
 <script src="../js/api.js"></script>
 <script src="../js/auth.js"></script>
 <script>
-  protegerRol(["anfitrion"]);
+  protegerRol(["admin", "gerente"]);
   renderizarUsuario();
 
   document.addEventListener("DOMContentLoaded", cargarHoteles);
 
   async function crearHotel(e){
     e.preventDefault();
-    const resEl = $("hotel-resultado");
-    resEl.classList.remove("hidden", "error", "success");
-    resEl.classList.add("loading");
-    resEl.textContent = "Subiendo imagen...";
+    renderLoading("hotel-resultado", "Subiendo imagen...");
 
     let imagenUrl = "";
     const archivo = $("h-imagen").files[0];
@@ -104,7 +101,6 @@
         formData.append("archivo", archivo);
         const uploadResp = await apiSubirArchivo(formData);
         imagenUrl = uploadResp.url;
-        resEl.textContent = "Imagen subida. Creando hotel...";
       }
 
       const body = {
@@ -117,16 +113,12 @@
       };
 
       const resp = await apiCrearHotel(body);
-      resEl.classList.remove("loading");
-      resEl.classList.add("success");
-      resEl.textContent = JSON.stringify(resp, null, 2);
+      renderData("hotel-resultado", resp);
       mostrarToast("Hotel creado correctamente", "success");
       $("hotelForm").reset();
       cargarHoteles();
     } catch(error){
-      resEl.classList.remove("loading");
-      resEl.classList.add("error");
-      resEl.textContent = error.message;
+      renderError("hotel-resultado", error.message);
       mostrarToast(error.message, "error");
     }
 
@@ -134,17 +126,17 @@
   }
 
   async function cargarHoteles(){
-    const contenedor = $("lista-hoteles");
-    contenedor.innerHTML = "<p style='color:var(--slate-500)'>Cargando...</p>";
+    renderLoading("lista-hoteles", "Cargando...", { setClass: false });
 
     try {
       const hoteles = await apiListarHotelesMios();
       if(hoteles.length === 0){
-        contenedor.innerHTML = "<p style='color:var(--slate-500)'>No tienes hoteles registrados.</p>";
+        renderData("lista-hoteles", [], { setClass: false, emptyMessage: "No tienes hoteles registrados." });
         return;
       }
 
-      contenedor.innerHTML = hoteles.map(h => `
+      // Se conserva el renderizado manual para agregar el enlace de gestion.
+      $("lista-hoteles").innerHTML = hoteles.map(h => `
         <div class="card">
           <div class="card-img">
             ${h.imagen_url ? `<img src="${API_BASE}${h.imagen_url}" alt="${h.nombre}" onerror="this.style.display='none'" />` : "Sin imagen"}
@@ -160,7 +152,7 @@
         </div>
       `).join("");
     } catch(error){
-      contenedor.innerHTML = `<p style="color:#991b1b">${error.message}</p>`;
+      renderError("lista-hoteles", error.message, { setClass: false });
     }
   }
 </script>
