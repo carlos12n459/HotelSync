@@ -1,1 +1,0 @@
-curl -s --max-time 10 -X POST http://localhost:3002/api/reservas -H "Content-Type: application/json" -d "{\"nombre_huesped\":\"Maria Perez\",\"email_huesped\":\"maria@example.com\",\"hotel_id\":1,\"tipo_habitacion_id\":1,\"fecha_checkin\":\"2026-09-28\",\"fecha_checkout\":\"2026-09-30\",\"monto_total\":360000}"

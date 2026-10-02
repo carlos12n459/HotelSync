@@ -1,1 +1,0 @@
-curl -s -X POST http://localhost:3010/channel/channel/webhook/booking -H "Content-Type: application/json" -d "{\"external_id\":\"BOOK-123\",\"nombre_huesped\":\"Juan Viajero\",\"email_huesped\":\"juan@example.com\",\"hotel_id\":1,\"tipo_habitacion_id\":1,\"fecha_checkin\":\"2026-10-05\",\"fecha_checkout\":\"2026-10-07\",\"monto_total\":400000}"
