@@ -162,6 +162,7 @@ services:
       DB_USER: hotelsync_app
       DB_PASSWORD: hotelsync_app_pass
       DB_NAME: propiedades_db
+      URL_SERVICIO_DISPONIBILIDAD: http://servicio-disponibilidad-tarifas:3001
     depends_on:
       postgres:
         condition: service_healthy

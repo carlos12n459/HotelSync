@@ -70,8 +70,8 @@ async function crearHotel(req, res) {
     return res.status(400).json({ error: "nombre, ciudad y pais son obligatorios" });
   }
 
-  // Si no se envia owner_id y el usuario autenticado es gerente, lo usamos.
-  const ownerFinal = owner_id || (usuario.rol === "gerente" ? usuario.id : null);
+  // Si no se envia owner_id y hay un usuario autenticado, lo usamos como dueno.
+  const ownerFinal = owner_id || usuario.id || null;
 
   try {
     const { rows: resultado } = await pool.query(
@@ -172,7 +172,30 @@ async function crearTipoHabitacion(req, res) {
       "INSERT INTO tipos_habitacion (hotel_id, nombre, capacidad, tarifa_base, amenities, politica_cancelacion, imagen_url) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
       [hotel_id, nombre, capacidad || 2, tarifa_base, amenities ? JSON.stringify(amenities) : null, politica_cancelacion || null, imagen_url || null]
     );
-    const { rows } = await pool.query("SELECT * FROM tipos_habitacion WHERE id = $1", [resultado[0].id]);
+    const tipo = resultado[0];
+
+    // Inicializar inventario en el servicio de disponibilidad (mejor esfuerzo).
+    try {
+      const urlDisponibilidad = `${process.env.URL_SERVICIO_DISPONIBILIDAD || "http://localhost:3001"}/api/disponibilidad/inicializar`;
+      console.log("[propiedades] Inicializando inventario en", urlDisponibilidad);
+      const resp = await fetch(urlDisponibilidad, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tipo_habitacion_id: tipo.id,
+          hotel_id: Number(hotel_id),
+          nombre,
+          capacidad: capacidad || 2,
+          tarifa_base
+        })
+      });
+      const respText = await resp.text();
+      console.log("[propiedades] Respuesta inventario", resp.status, respText);
+    } catch (syncError) {
+      console.error("[propiedades] No se pudo inicializar inventario:", syncError.message);
+    }
+
+    const { rows } = await pool.query("SELECT * FROM tipos_habitacion WHERE id = $1", [tipo.id]);
     res.status(201).json(rows[0]);
   } catch (error) {
     res.status(500).json({ error: "Error al crear tipo de habitacion", detalle: error.message });

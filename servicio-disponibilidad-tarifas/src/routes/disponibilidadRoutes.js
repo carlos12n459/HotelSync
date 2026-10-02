@@ -7,5 +7,6 @@ router.get("/tipos-habitacion", controlador.listarTiposHabitacion);
 router.get("/disponibilidad", controlador.consultarDisponibilidad);
 router.post("/disponibilidad/bloquear", controlador.bloquearInventario);
 router.post("/disponibilidad/liberar", controlador.liberarInventarioEndpoint);
+router.post("/disponibilidad/inicializar", controlador.inicializarInventario);
 
 module.exports = router;

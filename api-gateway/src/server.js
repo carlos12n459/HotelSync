@@ -71,6 +71,18 @@ function verificarJwtOpcional(req, res, next) {
 
 app.use(verificarJwtOpcional);
 
+// Inyectamos los headers de usuario directamente en el request entrante.
+// Esto asegura que el proxy los reenvie incluso en peticiones POST con body,
+// donde modificar proxyReq en el hook puede ser inconsistente.
+app.use((req, res, next) => {
+  if (req.user) {
+    req.headers["x-user-id"] = String(req.user.id || "");
+    req.headers["x-user-rol"] = String(req.user.rol || "");
+    req.headers["x-user-email"] = String(req.user.email || "");
+  }
+  next();
+});
+
 app.get("/health", (req, res) => res.json({ estado: "ok", servicio: "api-gateway", rutas: Object.keys(servicios) }));
 
 // Proxy hacia cada microservicio. Se reescribe el path agregando /api internamente.
@@ -82,7 +94,16 @@ for (const [ruta, target] of Object.entries(servicios)) {
     createProxyMiddleware({
       target,
       changeOrigin: true,
-      pathRewrite: (path) => `/api${path}`,
+      pathRewrite: (path) => {
+        // El path aqui llega sin el prefijo de la ruta del proxy.
+        // Los archivos se sirven estaticamente bajo /archivos en el servicio-archivos.
+        // Solo la subida (/archivos/subir) se reescribe al endpoint /api/subir.
+        if (ruta === "/archivos") {
+          if (path === "/subir") return "/api/subir";
+          return `/archivos${path}`;
+        }
+        return `/api${path}`;
+      },
       on: {
         error: (err, req, res) => {
           res.status(502).json({ error: `Servicio ${ruta} no disponible`, detalle: err.message });

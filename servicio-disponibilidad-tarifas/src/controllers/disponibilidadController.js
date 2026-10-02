@@ -189,10 +189,63 @@ async function liberarInventarioEndpoint(req, res) {
   }
 }
 
+/**
+ * POST /api/disponibilidad/inicializar
+ * Crea/actualiza un tipo de habitacion en el catalogo local y genera
+ * inventario inicial para los proximos N dias.
+ * Lo usa el servicio-propiedades despues de crear un nuevo tipo.
+ */
+async function inicializarInventario(req, res) {
+  const {
+    tipo_habitacion_id,
+    hotel_id,
+    nombre,
+    capacidad,
+    tarifa_base,
+    cantidad = 5,
+    dias = 30
+  } = req.body;
+
+  if (!tipo_habitacion_id || !hotel_id || !nombre || tarifa_base === undefined) {
+    return res.status(400).json({
+      error: "Se requieren tipo_habitacion_id, hotel_id, nombre y tarifa_base"
+    });
+  }
+
+  try {
+    // Asegurar que el tipo exista en el catalogo local de disponibilidad.
+    await pool.query(
+      `INSERT INTO tipos_habitacion (id, hotel_id, nombre, capacidad, tarifa_base)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (id) DO UPDATE SET
+         hotel_id = EXCLUDED.hotel_id,
+         nombre = EXCLUDED.nombre,
+         capacidad = EXCLUDED.capacidad,
+         tarifa_base = EXCLUDED.tarifa_base`,
+      [tipo_habitacion_id, hotel_id, nombre, capacidad || 2, tarifa_base]
+    );
+
+    // Generar inventario para los proximos dias.
+    await pool.query(
+      `INSERT INTO inventario (tipo_habitacion_id, fecha, cantidad_disponible, cantidad_bloqueada)
+       SELECT $1, fecha::date, $2, 0
+       FROM generate_series(CURRENT_DATE, CURRENT_DATE + ($3 || ' days')::interval, INTERVAL '1 day') AS fechas(fecha)
+       ON CONFLICT (tipo_habitacion_id, fecha) DO NOTHING`,
+      [tipo_habitacion_id, cantidad, dias]
+    );
+
+    res.json({ inicializado: true, tipo_habitacion_id });
+  } catch (error) {
+    console.error("[disponibilidad-tarifas] Error inicializando inventario:", error.message);
+    res.status(500).json({ error: "Error al inicializar inventario", detalle: error.message });
+  }
+}
+
 module.exports = {
   listarTiposHabitacion,
   consultarDisponibilidad,
   bloquearInventario,
   liberarInventario,
-  liberarInventarioEndpoint
+  liberarInventarioEndpoint,
+  inicializarInventario
 };
